@@ -1,5 +1,8 @@
+# ignore: F405
 import pytest
+
 from db import *
+
 from .common import *
 
 p = pytest.mark.parametrize
@@ -433,9 +436,7 @@ def test_db_delete_one_then_insert(db, pk, expected_lst, expected_contents):
         ),
     ],
 )
-def test_db_delete_many_then_insert(
-    db, pks, n, expected_ids, expected_lst, expected_contents
-):
+def test_db_delete_many_then_insert(db, pks, n, expected_ids, expected_lst, expected_contents):
     db.insert("a", {"text": "foo"})
     db.insert("a", {"text": "bar"})
     db.insert("a", {"text": "baz"})

@@ -1,8 +1,10 @@
-import pytest
-from db import DB
-from .common import *
 import glob
 
+import pytest
+
+from db import DB
+
+from .common import *
 
 all_tables = {
     "a": TableA,

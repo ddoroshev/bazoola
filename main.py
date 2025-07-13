@@ -44,9 +44,7 @@ def run() -> None:
             },
         )
 
-    book_1 = db.find_by_id(
-        "books", 1000, joins=[Join("author_id", "author", "authors")]
-    )
+    book_1 = db.find_by_id("books", 1000, joins=[Join("author_id", "author", "authors")])
     if not book_1:
         print("Can't find book by ID=100")
         return

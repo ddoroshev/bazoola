@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-import glob
-from math import ceil
 import os
-from typing import NamedTuple, BinaryIO, Any, Generator
+from abc import ABC, abstractmethod
+from collections.abc import Generator
+from typing import Any, BinaryIO, NamedTuple
 
 TABLE_BASE_DIR = os.getenv("TABLE_BASE_DIR", "data")
 
@@ -163,11 +162,7 @@ class Schema:
         return values
 
     def relations(self) -> list[tuple[str, str]]:
-        return [
-            (x.name, x.type.params["rel_name"])
-            for x in self.schema
-            if isinstance(x.type, FK)
-        ]
+        return [(x.name, x.type.params["rel_name"]) for x in self.schema if isinstance(x.type, FK)]
 
 
 class File:
@@ -193,47 +188,45 @@ class File:
     def read(self, n: int = -1) -> bytes:
         try:
             return self.f.read(n)
-        except IOError as e:
-            raise DBError(f"Failed to read from file: {str(e)}")
+        except OSError as e:
+            raise DBError(f"Failed to read from file: {e!s}")
 
     def seek(self, offset: int, whence: int = 0) -> None:
         try:
             self.f.seek(offset, whence)
-        except (ValueError, IOError) as e:
-            raise DBError(
-                f"Failed to seek in file (offset={offset}, whence={whence}): {str(e)}"
-            )
+        except (OSError, ValueError) as e:
+            raise DBError(f"Failed to seek in file (offset={offset}, whence={whence}): {e!s}")
 
     def tell(self) -> int:
         try:
             return self.f.tell()
-        except IOError as e:
-            raise DBError(f"Failed to get file position: {str(e)}")
+        except OSError as e:
+            raise DBError(f"Failed to get file position: {e!s}")
 
     def close(self) -> None:
         try:
             self.f.close()
-        except IOError:
+        except OSError:
             # Just log the error, don't raise since close is often called in finally blocks
             print("Warning: Failed to close file properly")
 
     def write(self, s: bytes | bytearray) -> int:
         try:
             return self.f.write(s)
-        except IOError as e:
-            raise DBError(f"Failed to write to file: {str(e)}")
+        except OSError as e:
+            raise DBError(f"Failed to write to file: {e!s}")
 
     def truncate(self, size: int | None = None) -> int:
         try:
             return self.f.truncate(size)
-        except IOError as e:
-            raise DBError(f"Failed to truncate file: {str(e)}")
+        except OSError as e:
+            raise DBError(f"Failed to truncate file: {e!s}")
 
     def size(self) -> int:
         try:
             return os.fstat(self.f.fileno()).st_size
-        except (IOError, OSError) as e:
-            raise DBError(f"Failed to get file size: {str(e)}")
+        except OSError as e:
+            raise DBError(f"Failed to get file size: {e!s}")
 
 
 class PersistentInt:
@@ -369,9 +362,7 @@ class Table:
         self.f.write(row)
         self.rownum_index.set(new_id - 1, chosen_rownum)
         parsed = self.schema.parse(row)
-        assert parsed is not None, (
-            "The inserted row doesn't match its parsed representation"
-        )
+        assert parsed is not None, "The inserted row doesn't match its parsed representation"
         return Row(parsed)
 
     def seek_insert(self) -> None:
@@ -586,9 +577,7 @@ class DB:
                 raise ValueError(f"Item id={fk_val} does not exist in '{fk_table}'")
         return tbl.insert(values)
 
-    def find_all(
-        self, table_name: str, *, joins: list[BaseJoin] | None = None
-    ) -> list[Row]:
+    def find_all(self, table_name: str, *, joins: list[BaseJoin] | None = None) -> list[Row]:
         assert table_name in self.tables, "No such table"
         if joins is None:
             joins = []
@@ -693,9 +682,7 @@ class DB:
         if isinstance(join, InverseJoin):
             joined_values = join.join(row["id"], self.tables[join.foreign_table_name])
         else:
-            joined_values = join.join(
-                row[join.fk_attr], self.tables[join.foreign_table_name]
-            )
+            joined_values = join.join(row[join.fk_attr], self.tables[join.foreign_table_name])
 
         return Row(row | joined_values)
 

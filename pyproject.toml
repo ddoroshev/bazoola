@@ -17,6 +17,7 @@ mypy = "^1.16.1"
 types-tqdm = "^4.67.0"
 pytest-env = "^1.1.5"
 ruff = "^0.9.10"
+pre-commit = "^4.0.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -53,3 +54,13 @@ exclude_lines = [
 directory = "htmlcov"
 skip_covered = true
 show_contexts = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+ignore = ["E741"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["F403", "F405"]
+"main.py" = ["F403", "F405"]
