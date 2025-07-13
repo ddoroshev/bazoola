@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "bazoola"
+version = "0.1.0"
+description = ""
+authors = ["Dmitrii Doroshev <github@doroshev.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.13"
+tqdm = "^4.67.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+mypy = "^1.16.1"
+types-tqdm = "^4.67.0"
+pytest-env = "^1.1.5"
+ruff = "^0.9.10"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--benchmark-skip"
+testpaths = [
+    "tests",
+]
+
+[tool.pytest_env]
+TABLE_BASE_DIR = "tests/tmp"
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "*/conftest.py",
+    "*/tests/*",
+    "main.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "@abstractmethod",
+    "@abc.abstractmethod",
+    "pragma: no cover",
+    "TYPE_CHECKING",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+skip_covered = true
+show_contexts = true
