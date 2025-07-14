@@ -1,0 +1,41 @@
+name: Publish to Test PyPI
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master]
+
+jobs:
+  test-publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Generate development version
+      run: |
+        VERSION=$(poetry version -s)
+        DEV_VERSION="${VERSION}.dev$(date +%Y%m%d%H%M%S)"
+        poetry version $DEV_VERSION
+
+    - name: Build package
+      run: poetry build
+
+    - name: Publish to Test PyPI
+      env:
+        POETRY_REPOSITORIES_TESTPYPI_URL: https://test.pypi.org/legacy/
+        POETRY_HTTP_BASIC_TESTPYPI_USERNAME: __token__
+        POETRY_HTTP_BASIC_TESTPYPI_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: poetry publish -r testpypi
