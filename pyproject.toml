@@ -48,9 +48,6 @@ testpaths = [
     "tests",
 ]
 
-[tool.pytest_env]
-TABLE_BASE_DIR = "tests/tmp"
-
 [tool.coverage.run]
 branch = true
 source = ["."]

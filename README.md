@@ -158,10 +158,14 @@ Bazoola creates the following files for each table:
 
 ## Configuration
 
-Set the `TABLE_BASE_DIR` environment variable to specify where database files should be stored:
+By default, database files are stored in a `data` directory. You can specify a different directory when creating the database:
 
-```bash
-export TABLE_BASE_DIR=/path/to/data/directory
+```python
+# Use default 'data' directory
+db = DB([TableAuthors, TableBooks])
+
+# Use custom directory
+db = DB([TableAuthors, TableBooks], base_dir="/path/to/data/directory")
 ```
 
 ## Testing

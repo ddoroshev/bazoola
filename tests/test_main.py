@@ -4,6 +4,7 @@ import pytest
 from bazoola import *
 
 from .common import *
+from .conftest import TEST_BASE_DIR
 
 p = pytest.mark.parametrize
 
@@ -13,37 +14,40 @@ def use_tables(*tables):
 
 
 def assert_file_contents(fname, expected):
-    with open(f"{TABLE_BASE_DIR}/{fname}", "rb") as f:
+    with open(f"{TEST_BASE_DIR}/{fname}", "rb") as f:
         assert f.read() == expected
 
 
 def set_file_contents(fname, contents):
-    with open(f"{TABLE_BASE_DIR}/{fname}", "wb") as f:
+    with open(f"{TEST_BASE_DIR}/{fname}", "wb") as f:
         f.write(contents)
 
 
 def test_table_open_first():
-    t = TableA()
+    db = DB([TableA], base_dir=TEST_BASE_DIR)
+    t = db.tables["a"]
 
     assert t.seqnum == 0
     assert_file_contents("a.dat", b"")
 
-    t.close()
+    db.close()
 
 
 def test_table_open_second():
-    TableA().close()
+    db1 = DB([TableA], base_dir=TEST_BASE_DIR)
+    db1.close()
 
-    t = TableA()
+    db2 = DB([TableA], base_dir=TEST_BASE_DIR)
+    t = db2.tables["a"]
 
     assert t.seqnum == 0
     assert_file_contents("a.dat", b"")
 
-    t.close()
+    db2.close()
 
 
 def test_db_open_close():
-    db = DB([TableA, TableB])
+    db = DB([TableA, TableB], base_dir=TEST_BASE_DIR)
     db.close()
 
     assert_file_contents("a.dat", b"")

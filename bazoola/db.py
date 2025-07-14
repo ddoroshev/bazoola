@@ -5,8 +5,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator
 from typing import Any, BinaryIO, NamedTuple
 
-TABLE_BASE_DIR = os.getenv("TABLE_BASE_DIR", "data")
-
 
 class DBError(Exception):
     def __init__(self, message: str):
@@ -170,15 +168,21 @@ class File:
         self.f = file
 
     @classmethod
-    def open(cls, path: str, default_body: bytes | None = None) -> File:
+    def open(
+        cls, path: str, default_body: bytes | None = None, base_dir: str | None = None
+    ) -> File:
         assert path
 
-        if TABLE_BASE_DIR:  # pragma: no cover
-            path = os.path.join(TABLE_BASE_DIR, path)
+        if base_dir:
+            path = os.path.join(base_dir, path)
 
         try:
             f = open(path, "rb+", buffering=0)
         except FileNotFoundError:
+            # Ensure directory exists before creating file
+            dir_path = os.path.dirname(path)
+            if dir_path and not os.path.exists(dir_path):
+                os.makedirs(dir_path)
             with open(path, "wb") as fnew:
                 if default_body is not None:
                     fnew.write(default_body)
@@ -230,8 +234,8 @@ class File:
 
 
 class PersistentInt:
-    def __init__(self, fname: str, default: int) -> None:
-        self.f = File.open(fname, str(default).encode())
+    def __init__(self, fname: str, default: int, base_dir: str | None = None) -> None:
+        self.f = File.open(fname, str(default).encode(), base_dir=base_dir)
 
     def get(self) -> int:
         return int(self.f.read())
@@ -245,8 +249,8 @@ class PersistentInt:
 
 
 class Array:
-    def __init__(self, fname: str, item_size: int) -> None:
-        self.f = File.open(fname)
+    def __init__(self, fname: str, item_size: int, base_dir: str | None = None) -> None:
+        self.f = File.open(fname, base_dir=base_dir)
         self.item_size = item_size
         self.fmt = f"%-{item_size}s"
 
@@ -282,8 +286,8 @@ class Stack:
         self.fmt = f"%-{item_size}s"
 
     @classmethod
-    def from_file_path(cls, path: str, item_size: int) -> Stack:
-        return cls(File.open(path), item_size)
+    def from_file_path(cls, path: str, item_size: int, base_dir: str | None = None) -> Stack:
+        return cls(File.open(path, base_dir=base_dir), item_size)
 
     def close(self) -> None:
         self.f.close()
@@ -302,8 +306,8 @@ class Stack:
 
 
 class FreeRownums:
-    def __init__(self, table_name: str) -> None:
-        self.stack = Stack.from_file_path(f"{table_name}__free.dat", 6)
+    def __init__(self, table_name: str, base_dir: str | None = None) -> None:
+        self.stack = Stack.from_file_path(f"{table_name}__free.dat", 6, base_dir=base_dir)
 
     def close(self) -> None:
         self.stack.close()
@@ -323,14 +327,15 @@ class Table:
         assert self.name and self.schema
 
         self.db = db
+        base_dir = self.db.base_dir if self.db else None
 
         self.row_size = self.schema.row_size()
-        self.f = File.open(f"{self.name}.dat")
-        self.f_seqnum = PersistentInt(f"{self.name}__seqnum.dat", 0)
+        self.f = File.open(f"{self.name}.dat", base_dir=base_dir)
+        self.f_seqnum = PersistentInt(f"{self.name}__seqnum.dat", 0, base_dir=base_dir)
         self.seqnum = self.f_seqnum.get()
 
-        self.free_rownums = FreeRownums(self.name)
-        self.rownum_index = Array(f"{self.name}__id.idx.dat", 6)
+        self.free_rownums = FreeRownums(self.name, base_dir=base_dir)
+        self.rownum_index = Array(f"{self.name}__id.idx.dat", 6, base_dir=base_dir)
 
     def close(self) -> None:
         self.rownum_index.close()
@@ -555,10 +560,13 @@ class Row(dict):
 
 
 class DB:
-    def __init__(self, cls_tables: list[type[Table]]) -> None:
+    def __init__(self, cls_tables: list[type[Table]], base_dir: str = "data") -> None:
         assert cls_tables, "DB must have at least one table"
 
         self.cls_tables = cls_tables
+        self.base_dir = base_dir
+        os.makedirs(self.base_dir, exist_ok=True)
+
         self.open_tables()
 
     def open_tables(self) -> None:

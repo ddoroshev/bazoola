@@ -23,7 +23,6 @@ from bazoola.db import (
     GT,
     Row,
     DB,
-    TABLE_BASE_DIR,
 )
 
 __all__ = [
@@ -51,5 +50,4 @@ __all__ = [
     "GT",
     "Row",
     "DB",
-    "TABLE_BASE_DIR",
 ]

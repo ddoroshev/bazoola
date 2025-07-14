@@ -7,6 +7,8 @@ from bazoola import DB
 
 from .common import *
 
+TEST_BASE_DIR = "tests/tmp"
+
 all_tables = {
     "a": TableA,
     "b": TableB,
@@ -23,7 +25,7 @@ def tables():
 
 @pytest.fixture
 def db(tables):
-    _db = DB([all_tables[x] for x in tables])
+    _db = DB([all_tables[x] for x in tables], base_dir=TEST_BASE_DIR)
     yield _db
     _db.close()
 
@@ -31,9 +33,9 @@ def db(tables):
 @pytest.fixture(autouse=True)
 def cleanup():
     yield
-    for f in glob.glob("tests/tmp/*.dat"):
+    for f in glob.glob(f"{TEST_BASE_DIR}/*.dat"):
         os.remove(f)
-    for f in glob.glob("tests/tmp/*.idx*"):
+    for f in glob.glob(f"{TEST_BASE_DIR}/*.idx*"):
         os.remove(f)
 
 
