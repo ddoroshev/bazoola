@@ -1,6 +1,8 @@
 # Bazoola
 
-[![CI](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml/badge.svg)](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml)
+[![CI](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lightweight, file-based database implementation in Python designed for educational purposes and simple applications.
 
