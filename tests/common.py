@@ -1,4 +1,4 @@
-from db import *
+from bazoola import *
 
 
 class TableA(Table):

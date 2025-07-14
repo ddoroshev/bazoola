@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tqdm import tqdm
 
-from db import *
+from bazoola import *
 
 
 class TableBooks(Table):

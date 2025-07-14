@@ -1,8 +1,9 @@
 import glob
+import os
 
 import pytest
 
-from db import DB
+from bazoola import DB
 
 from .common import *
 

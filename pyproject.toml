@@ -1,16 +1,16 @@
 [tool.poetry]
 name = "bazoola"
-version = "0.1.0"
+version = "0.0.1"
 description = ""
-authors = ["Dmitrii Doroshev <github@doroshev.com>"]
+authors = ["Dima Doroshev <github@doroshev.com>"]
 readme = "README.md"
-package-mode = false
+packages = [{include = "bazoola"}]
 
 [tool.poetry.dependencies]
-python = "^3.13"
-tqdm = "^4.67.1"
+python = "^3.12"
 
 [tool.poetry.group.dev.dependencies]
+tqdm = "^4.67.1"
 pytest = "^8.4.1"
 pytest-cov = "^6.2.1"
 mypy = "^1.16.1"

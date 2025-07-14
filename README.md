@@ -21,6 +21,15 @@ Bazoola is a minimal database system that stores data in text files with fixed-w
 
 ## Installation
 
+### Install as a package
+
+```bash
+# Install directly from GitHub
+pip install git+https://github.com/ddoroshev/bazoola.git
+```
+
+### Development setup
+
 ```bash
 # Clone the repository
 git clone https://github.com/ddoroshev/bazoola.git
@@ -33,7 +42,7 @@ poetry install
 ## Quick Start
 
 ```python
-from db import DB, Table, Schema, Field, PK, FK, CHAR, INT, Join
+from bazoola import DB, Table, Schema, Field, PK, FK, CHAR, INT, Join
 
 # Define table schemas
 class TableAuthors(Table):

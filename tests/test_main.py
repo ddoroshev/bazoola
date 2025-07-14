@@ -1,7 +1,7 @@
 # ignore: F405
 import pytest
 
-from db import *
+from bazoola import *
 
 from .common import *
 
