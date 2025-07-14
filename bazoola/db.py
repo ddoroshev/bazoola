@@ -490,15 +490,15 @@ class Table:
         self.free_rownums.stack.f.truncate()
 
 
-class BaseJoin[T: Table](ABC):
+class BaseJoin(ABC):
     fk_attr: str
     foreign_table_name: str
 
     @abstractmethod
-    def join(self, fk: int | None, foreign_table: T) -> dict: ...
+    def join(self, fk: int | None, foreign_table: Table) -> dict: ...
 
 
-class Join(BaseJoin[Table]):
+class Join(BaseJoin):
     def __init__(self, fk_attr: str, key: str, foreign_table_name: str):
         assert fk_attr and key and foreign_table_name
 
