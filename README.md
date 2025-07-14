@@ -1,5 +1,7 @@
 # Bazoola
 
+[![CI](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml/badge.svg)](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml)
+
 A lightweight, file-based database implementation in Python designed for educational purposes and simple applications.
 
 ## Overview
