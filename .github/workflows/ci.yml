@@ -26,12 +26,15 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13']
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: ${{ matrix.python-version }}
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
@@ -41,8 +44,42 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
     - name: Install dependencies
       run: poetry install --no-interaction --no-root
+    - name: Install package
+      run: poetry install --no-interaction
     - name: Run tests with coverage
       run: poetry run pytest --cov --cov-report=term
+    - name: Run type checking
+      run: poetry run mypy bazoola --ignore-missing-imports
+    - name: Run linter
+      run: poetry run ruff check .
+
+  test-package-install:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Test package installation
+      run: |
+        pip install .
+        python -c "from bazoola import *; print('Package import successful')"
+    - name: Test package functionality
+      run: |
+        cat << 'EOF' > test_package.py
+        from bazoola import DB, Table, Schema, Field, PK, CHAR
+        class TestTable(Table):
+            name = 'test'
+            schema = Schema([Field('id', PK()), Field('name', CHAR(10))])
+        db = DB([TestTable])
+        db.insert('test', {'name': 'test'})
+        print('Basic functionality works')
+        EOF
+        python test_package.py
