@@ -130,7 +130,7 @@ db.truncate("table_name", cascade=False)
 ### Advanced Queries
 
 ```python
-from db import GT, LT
+from bazoola import GT, LT
 
 # Find with conditions
 rows = db.find_by_cond("books", GT(year=2020))
@@ -142,7 +142,7 @@ rows = db.find_all("books", joins=[
 ])
 
 # Inverse joins (one-to-many)
-from db import InverseJoin
+from bazoola import InverseJoin
 author = db.find_by_id("authors", 1, joins=[
     InverseJoin("author_id", "books", "books")
 ])
