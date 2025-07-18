@@ -5,22 +5,7 @@ from bazoola import *
 
 from .common import *
 from .conftest import TEST_BASE_DIR
-
-p = pytest.mark.parametrize
-
-
-def use_tables(*tables):
-    return p("tables", [[*tables]])
-
-
-def assert_file_contents(fname, expected):
-    with open(f"{TEST_BASE_DIR}/{fname}", "rb") as f:
-        assert f.read() == expected
-
-
-def set_file_contents(fname, contents):
-    with open(f"{TEST_BASE_DIR}/{fname}", "wb") as f:
-        f.write(contents)
+from .util import *
 
 
 def test_table_open_first():

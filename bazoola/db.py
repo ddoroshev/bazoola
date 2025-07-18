@@ -4,19 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from typing import Any, BinaryIO, NamedTuple
-
-
-class DBError(Exception):
-    def __init__(self, message: str):
-        self.message = message
-
-
-class ValidationError(DBError):
-    pass
-
-
-class NotFoundError(DBError):
-    pass
+from .errors import DBError, ValidationError, NotFoundError
 
 
 class FieldType(ABC):
