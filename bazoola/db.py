@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+import fcntl
 import os
+from typing import BinaryIO, Generator
+
 from abc import ABC, abstractmethod
-from collections.abc import Generator
-from typing import Any, BinaryIO, NamedTuple
+import threading
+from typing import Any, NamedTuple
 
 
 class DBError(Exception):
@@ -193,19 +197,21 @@ class File:
         try:
             return self.f.read(n)
         except OSError as e:
-            raise DBError(f"Failed to read from file: {e!s}")
+            raise DBError(f"Failed to read from file {self.f.name}: {e!s}")
 
     def seek(self, offset: int, whence: int = 0) -> None:
         try:
             self.f.seek(offset, whence)
         except (OSError, ValueError) as e:
-            raise DBError(f"Failed to seek in file (offset={offset}, whence={whence}): {e!s}")
+            raise DBError(
+                f"Failed to seek in file {self.f.name} (offset={offset}, whence={whence}): {e!s}"
+            )
 
     def tell(self) -> int:
         try:
             return self.f.tell()
         except OSError as e:
-            raise DBError(f"Failed to get file position: {e!s}")
+            raise DBError(f"Failed to get file position in {self.f.name}: {e!s}")
 
     def close(self) -> None:
         try:
@@ -218,19 +224,27 @@ class File:
         try:
             return self.f.write(s)
         except OSError as e:
-            raise DBError(f"Failed to write to file: {e!s}")
+            raise DBError(f"Failed to write to file {self.f.name}: {e!s}")
 
     def truncate(self, size: int | None = None) -> int:
         try:
             return self.f.truncate(size)
         except OSError as e:
-            raise DBError(f"Failed to truncate file: {e!s}")
+            raise DBError(f"Failed to truncate file {self.f.name}: {e!s}")
 
     def size(self) -> int:
         try:
             return os.fstat(self.f.fileno()).st_size
         except OSError as e:
-            raise DBError(f"Failed to get file size: {e!s}")
+            raise DBError(f"Failed to get file size {self.f.name}: {e!s}")
+
+    @contextmanager
+    def lock(self) -> Generator[None, None, None]:
+        try:
+            fcntl.flock(self.f.fileno(), fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(self.f.fileno(), fcntl.LOCK_UN)
 
 
 class PersistentInt:
@@ -238,6 +252,7 @@ class PersistentInt:
         self.f = File.open(fname, str(default).encode(), base_dir=base_dir)
 
     def get(self) -> int:
+        self.f.seek(0)
         return int(self.f.read())
 
     def set(self, i: int) -> None:
@@ -281,7 +296,6 @@ class Array:
 class Stack:
     def __init__(self, file: File, item_size: int) -> None:
         self.f = file
-        self.f.seek(0, os.SEEK_END)
         self.item_size = item_size
         self.fmt = f"%-{item_size}s"
 
@@ -293,16 +307,24 @@ class Stack:
         self.f.close()
 
     def push(self, item: int) -> None:
-        self.f.write((self.fmt % item).encode())
+        with self.f.lock():
+            self.f.seek(0, os.SEEK_END)
+            self.f.write((self.fmt % item).encode())
 
     def pop(self) -> int | None:
-        if self.f.tell() == 0:
-            return None
-        self.f.seek(-self.item_size, os.SEEK_CUR)
-        rownum = self.f.read(self.item_size)
-        self.f.truncate(self.f.tell() - self.item_size)
-        self.f.seek(0, os.SEEK_END)
-        return int(rownum)
+        with self.f.lock():
+            self.f.seek(0, os.SEEK_END)
+            file_size = self.f.tell()
+            if file_size == 0:
+                return None
+            if file_size < self.item_size:
+                print(f"File corrupted: size {file_size} < item_size {self.item_size}")
+                return None
+            self.f.seek(-self.item_size, os.SEEK_END)
+            rownum = self.f.read(self.item_size)
+            new_size = self.f.tell() - self.item_size
+            self.f.truncate(new_size)
+            return int(rownum)
 
 
 class FreeRownums:
@@ -332,7 +354,6 @@ class Table:
         self.row_size = self.schema.row_size()
         self.f = File.open(f"{self.name}.dat", base_dir=base_dir)
         self.f_seqnum = PersistentInt(f"{self.name}__seqnum.dat", 0, base_dir=base_dir)
-        self.seqnum = self.f_seqnum.get()
 
         self.free_rownums = FreeRownums(self.name, base_dir=base_dir)
         self.rownum_index = Array(f"{self.name}__id.idx.dat", 6, base_dir=base_dir)
@@ -344,9 +365,9 @@ class Table:
         self.f.close()
 
     def next_seqnum(self) -> int:
-        self.seqnum += 1
-        self.f_seqnum.set(self.seqnum)
-        return self.seqnum
+        seqnum = self.f_seqnum.get() + 1
+        self.f_seqnum.set(seqnum)
+        return seqnum
 
     def insert(self, values: dict) -> Row:
         if "id" in values:
@@ -486,7 +507,6 @@ class Table:
         self.f.seek(0)
         self.f.truncate()
 
-        self.seqnum = 0
         self.f_seqnum.set(0)
 
         self.rownum_index.f.seek(0)
@@ -569,31 +589,41 @@ class DB:
 
         self.open_tables()
 
+        self._threadlock = threading.RLock()
+        self._lockfile = File.open(".lock", base_dir=base_dir)
+
+    @contextmanager
+    def lock(self) -> Generator[None, None, None]:
+        with self._threadlock, self._lockfile.lock():
+            yield
+
     def open_tables(self) -> None:
         self.tables: dict[str, Table] = {x.name: x(self) for x in self.cls_tables}
 
     def insert(self, table_name: str, values: dict) -> Row:
         assert table_name in self.tables, "No such table"
 
-        tbl = self.tables[table_name]
-        for fk_field, fk_table in tbl.schema.relations():
-            fk_val = values.get(fk_field)
-            if not fk_val:
-                continue
-            rel_obj = self.tables[fk_table].find_by_id(fk_val)
-            if not rel_obj:
-                raise ValueError(f"Item id={fk_val} does not exist in '{fk_table}'")
-        return tbl.insert(values)
+        with self.lock():
+            tbl = self.tables[table_name]
+            for fk_field, fk_table in tbl.schema.relations():
+                fk_val = values.get(fk_field)
+                if not fk_val:
+                    continue
+                rel_obj = self.tables[fk_table].find_by_id(fk_val)
+                if not rel_obj:
+                    raise ValueError(f"Item id={fk_val} does not exist in '{fk_table}'")
+            return tbl.insert(values)
 
     def find_all(self, table_name: str, *, joins: list[BaseJoin] | None = None) -> list[Row]:
         assert table_name in self.tables, "No such table"
         if joins is None:
             joins = []
 
-        rows = self.tables[table_name].find_all()
-        for join in joins:
-            for i in range(len(rows)):
-                rows[i] = self.perform_join(rows[i], join, self.tables[table_name])
+        with self.lock():
+            rows = self.tables[table_name].find_all()
+            for join in joins:
+                for i in range(len(rows)):
+                    rows[i] = self.perform_join(rows[i], join, self.tables[table_name])
         return rows
 
     def find_by_id(
@@ -603,36 +633,40 @@ class DB:
         if joins is None:
             joins = []
 
-        row = self.tables[table_name].find_by_id(pk)
-        if joins and row:
-            for join in joins:
-                row = self.perform_join(row, join, self.tables[table_name])
+        with self.lock():
+            row = self.tables[table_name].find_by_id(pk)
+            if joins and row:
+                for join in joins:
+                    row = self.perform_join(row, join, self.tables[table_name])
         return row
 
     def delete_by_id(self, table_name: str, pk: int) -> None:
         assert table_name in self.tables, "No such table"
 
-        self.tables[table_name].delete_by_id(pk)
+        with self.lock():
+            self.tables[table_name].delete_by_id(pk)
 
     def delete_by_substr(self, table_name: str, field_name: str, substr: str) -> None:
         assert table_name in self.tables, "No such table"
         assert field_name and substr
 
-        self.tables[table_name].delete_by_substr(field_name, substr)
+        with self.lock():
+            self.tables[table_name].delete_by_substr(field_name, substr)
 
     def update_by_id(self, table_name: str, pk: int, values: dict) -> Row:
         assert table_name in self.tables, "No such table"
 
-        tbl = self.tables[table_name]
-        for fk_field, fk_table in tbl.schema.relations():
-            fk_val = values.get(fk_field)
-            if not fk_val:
-                continue
-            rel_obj = self.tables[fk_table].find_by_id(fk_val)
-            if not rel_obj:
-                raise ValueError(f"Item id={fk_val} does not exist in '{fk_table}'")
+        with self.lock():
+            tbl = self.tables[table_name]
+            for fk_field, fk_table in tbl.schema.relations():
+                fk_val = values.get(fk_field)
+                if not fk_val:
+                    continue
+                rel_obj = self.tables[fk_table].find_by_id(fk_val)
+                if not rel_obj:
+                    raise ValueError(f"Item id={fk_val} does not exist in '{fk_table}'")
 
-        return self.tables[table_name].update_by_id(pk, values)
+            return self.tables[table_name].update_by_id(pk, values)
 
     def find_by(
         self,
@@ -647,10 +681,11 @@ class DB:
         if joins is None:
             joins = []
 
-        res = self.tables[table_name].find_by(field_name, value)
-        for join in joins:
-            for i in range(len(res)):
-                res[i] = self.perform_join(res[i], join, self.tables[table_name])
+        with self.lock():
+            res = self.tables[table_name].find_by(field_name, value)
+            for join in joins:
+                for i in range(len(res)):
+                    res[i] = self.perform_join(res[i], join, self.tables[table_name])
         return res
 
     def find_by_substr(
@@ -666,10 +701,11 @@ class DB:
         if joins is None:
             joins = []
 
-        res = self.tables[table_name].find_by_substr(field_name, substr)
-        for join in joins:
-            for i in range(len(res)):
-                res[i] = self.perform_join(res[i], join, self.tables[table_name])
+        with self.lock():
+            res = self.tables[table_name].find_by_substr(field_name, substr)
+            for join in joins:
+                for i in range(len(res)):
+                    res[i] = self.perform_join(res[i], join, self.tables[table_name])
         return res
 
     def find_by_cond(
@@ -679,10 +715,11 @@ class DB:
         if joins is None:
             joins = []
 
-        res = self.tables[table_name].find_by_cond(cond)
-        for join in joins:
-            for i in range(len(res)):
-                res[i] = self.perform_join(res[i], join, self.tables[table_name])
+        with self.lock():
+            res = self.tables[table_name].find_by_cond(cond)
+            for join in joins:
+                for i in range(len(res)):
+                    res[i] = self.perform_join(res[i], join, self.tables[table_name])
         return res
 
     def perform_join(self, row: Row, join: BaseJoin, table: Table) -> Row:
@@ -706,4 +743,5 @@ class DB:
     def truncate(self, table_name: str, cascade: bool = False) -> None:
         assert table_name in self.tables, "No such table"
 
-        self.tables[table_name].truncate(cascade=cascade)
+        with self.lock():
+            self.tables[table_name].truncate(cascade=cascade)

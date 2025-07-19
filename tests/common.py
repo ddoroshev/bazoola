@@ -53,3 +53,13 @@ class TableD(Table):
             Field("int", INT(null=True)),
         ]
     )
+
+
+class TableE(Table):
+    name = "e"
+    schema = Schema(
+        [
+            Field("id", PK()),
+            Field("text", CHAR(20)),
+        ]
+    )

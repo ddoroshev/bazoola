@@ -163,6 +163,7 @@ cython_debug/
 
 # db data
 *.dat
+*.lock
 
 # benchmark histograms
 *.svg

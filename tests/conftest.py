@@ -15,6 +15,7 @@ all_tables = {
     "b2": TableB_NullableFK,
     "c": TableC,
     "d": TableD,
+    "e": TableE,
 }
 
 
@@ -35,7 +36,7 @@ def cleanup():
     yield
     for f in glob.glob(f"{TEST_BASE_DIR}/*.dat"):
         os.remove(f)
-    for f in glob.glob(f"{TEST_BASE_DIR}/*.idx*"):
+    for f in glob.glob(f"{TEST_BASE_DIR}/.lock"):
         os.remove(f)
 
 
