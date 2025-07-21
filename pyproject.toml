@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bazoola"
-version = "0.0.3"
+version = "0.0.4"
 description = "A lightweight, file-based database implementation in Python"
 authors = ["Dima Doroshev <github@doroshev.com>"]
 readme = "README.md"
