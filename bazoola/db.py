@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 import fcntl
 import os
-from typing import BinaryIO, Generator
-
-from abc import ABC, abstractmethod
 import threading
-from typing import Any, NamedTuple
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from typing import Any, BinaryIO, Generator, NamedTuple
 
 
 class DBError(Exception):

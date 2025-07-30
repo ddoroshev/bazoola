@@ -74,7 +74,11 @@ show_contexts = true
 line-length = 100
 
 [tool.ruff.lint]
+select = ["E", "F", "I", "RUF022"]  # E=pycodestyle errors, F=pyflakes, I=isort, RUF022=sort __all__
 ignore = ["E741"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bazoola"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["F403", "F405"]
