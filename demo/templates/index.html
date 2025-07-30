@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Task Manager Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Dashboard</h1>
+    <p class="text-muted">Welcome to the Task Manager Demo using Bazoola toy database</p>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <h2>Projects <span class="float-right"><a href="{{ url_for('new_project') }}" class="btn btn-success">New Project</a></span></h2>
+        {% if projects %}
+            {% for project in projects %}
+                <div class="card" style="margin: 0.5rem 0;">
+                    <h3><a href="{{ url_for('project_detail', project_id=project.id) }}" style="text-decoration: none; color: #2c3e50;">{{ project.name }}</a></h3>
+                    <p class="text-muted">{{ project.description }}</p>
+                    <p>
+                        <span class="status status-{{ project.status }}">{{ project.status }}</span>
+                        <span class="text-muted">• Owner: {{ project.owner.username }}</span>
+                        {% if project.due_date %}
+                            <span class="text-muted">• Due: {{ project.due_date }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">No projects found. <a href="{{ url_for('new_project') }}">Create your first project</a></p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Recent Tasks <span class="float-right"><a href="{{ url_for('new_task') }}" class="btn btn-success">New Task</a></span></h2>
+        {% if recent_tasks %}
+            {% for task in recent_tasks %}
+                <div class="card" style="margin: 0.5rem 0;">
+                    <h4><a href="{{ url_for('task_detail', task_id=task.id) }}" style="text-decoration: none; color: #2c3e50;">{{ task.title }}</a></h4>
+                    <p class="text-muted">{{ task.description[:80] }}{% if task.description|length > 80 %}...{% endif %}</p>
+                    <p>
+                        <span class="status status-{{ task.status }}">{{ task.status }}</span>
+                        <span class="priority priority-{{ task.priority }}">{{ task.priority }}</span>
+                        <span class="text-muted">• Project: {{ task.project.name }}</span>
+                        {% if task.assignee %}
+                            <span class="text-muted">• Assigned to: {{ task.assignee.username }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            {% endfor %}
+            <p><a href="{{ url_for('tasks') }}">View all tasks →</a></p>
+        {% else %}
+            <p class="text-muted">No tasks found. <a href="{{ url_for('new_task') }}">Create your first task</a></p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Database Features Demo</h2>
+    <div class="grid grid-3">
+        <div>
+            <h3>🔗 Relationships</h3>
+            <ul>
+                <li>Projects → Users (owner)</li>
+                <li>Tasks → Projects</li>
+                <li>Tasks → Users (assignee)</li>
+                <li>Comments → Tasks & Users</li>
+            </ul>
+        </div>
+        <div>
+            <h3>🔍 Search Features</h3>
+            <ul>
+                <li>Substring search in titles/names</li>
+                <li>Filter by status/priority</li>
+                <li>Cross-table search results</li>
+                <li>Foreign key validation</li>
+            </ul>
+        </div>
+        <div>
+            <h3>💾 Database Constraints</h3>
+            <ul>
+                <li>Fixed-width CHAR fields</li>
+                <li>Primary key auto-increment</li>
+                <li>Foreign key constraints</li>
+                <li>File-based persistent storage</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

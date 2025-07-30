@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Users - Task Manager Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Users <span class="float-right"><a href="{{ url_for('new_user') }}" class="btn btn-success">New User</a></span></h1>
+</div>
+
+{% if users %}
+    <div class="grid grid-3">
+        {% for user in users %}
+            <div class="card">
+                <h3>{{ user.username }}</h3>
+                <p class="text-muted">{{ user.email }}</p>
+                <p><span class="status status-{{ user.role }}">{{ user.role }}</span></p>
+                <div style="margin-top: 1rem;">
+                    <small class="text-muted">User ID: {{ user.id }}</small>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card">
+        <p class="text-muted">No users found. <a href="{{ url_for('new_user') }}">Create your first user</a></p>
+    </div>
+{% endif %}
+
+<div class="card">
+    <h3>User Management Demo</h3>
+    <p class="text-muted">This demonstrates the users table structure:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Purpose</th>
+                <th>Constraint</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>id</td>
+                <td>PK()</td>
+                <td>Primary key, auto-increment</td>
+                <td>Required, unique</td>
+            </tr>
+            <tr>
+                <td>username</td>
+                <td>CHAR(20)</td>
+                <td>Display name</td>
+                <td>Max 20 characters</td>
+            </tr>
+            <tr>
+                <td>email</td>
+                <td>CHAR(50)</td>
+                <td>Contact information</td>
+                <td>Max 50 characters</td>
+            </tr>
+            <tr>
+                <td>role</td>
+                <td>CHAR(10)</td>
+                <td>User permission level</td>
+                <td>admin/manager/user</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4>Referenced By:</h4>
+    <ul>
+        <li><strong>Projects</strong>: owner_id → users.id</li>
+        <li><strong>Tasks</strong>: assignee_id → users.id (nullable)</li>
+        <li><strong>Comments</strong>: user_id → users.id</li>
+    </ul>
+
+    <p class="text-muted">Users cannot be deleted if they have associated projects, tasks, or comments due to foreign key constraints.</p>
+</div>
+{% endblock %}

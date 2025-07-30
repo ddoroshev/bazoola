@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Task Manager Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ project.name }}</h1>
+    <p class="text-muted mb-2">{{ project.description }}</p>
+    <div class="mb-2">
+        <span class="status status-{{ project.status }}">{{ project.status }}</span>
+        <span class="text-muted">• Owner: <strong>{{ project.owner.username }}</strong> ({{ project.owner.email }})</span>
+    </div>
+    <div class="text-muted">
+        <p>Created: {{ project.created_date }}</p>
+        {% if project.due_date %}
+            <p>Due: {{ project.due_date }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Tasks <span class="float-right"><a href="{{ url_for('new_task') }}?project_id={{ project.id }}" class="btn btn-success">Add Task</a></span></h2>
+
+    {% if tasks %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Assignee</th>
+                    <th>Due Date</th>
+                    <th>Est. Hours</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                    <tr>
+                        <td>
+                            <strong>{{ task.title }}</strong>
+                            {% if task.description %}
+                                <br><small class="text-muted">{{ task.description[:60] }}{% if task.description|length > 60 %}...{% endif %}</small>
+                            {% endif %}
+                        </td>
+                        <td><span class="status status-{{ task.status }}">{{ task.status }}</span></td>
+                        <td><span class="priority priority-{{ task.priority }}">{{ task.priority }}</span></td>
+                        <td>
+                            {% if task.assignee %}
+                                {{ task.assignee.username }}
+                            {% else %}
+                                <span class="text-muted">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.due_date or '-' }}</td>
+                        <td>{{ task.estimated_hours or '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">View</a>
+                            <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Edit</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-muted">No tasks in this project yet. <a href="{{ url_for('new_task') }}?project_id={{ project.id }}">Add the first task</a></p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Database Relationship Demo</h3>
+    <p class="text-muted">This view demonstrates:</p>
+    <ul>
+        <li><strong>Join Query</strong>: Project → User (owner) relationship using <code>Join("owner_id", "owner", "users")</code></li>
+        <li><strong>Foreign Key Lookup</strong>: Tasks filtered by <code>project_id</code> with Task → User (assignee) joins</li>
+        <li><strong>Data Constraints</strong>: Fixed-width CHAR fields limit description display</li>
+        <li><strong>Nullable Fields</strong>: Due dates and assignees can be empty</li>
+    </ul>
+</div>
+{% endblock %}

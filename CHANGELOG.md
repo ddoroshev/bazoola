@@ -4,9 +4,18 @@
 
 ### Added
 - `SUBSTR` and `ISUBSTR` condition classes for substring matching in `find_by_cond`
+- Comprehensive Flask demo application (`demo/`) showcasing real-world usage:
+  - Task management system with users, projects, tasks, and comments
+  - Complex schema with foreign key relationships
+  - Web interface with CRUD operations
+  - Case-insensitive search functionality using `ISUBSTR`
+  - Proper separation of concerns with `schema.py`
+- Import sorting configuration with `ruff`
 
 ### Changed
 - Replaced `find_by_substr` with `SUBSTR` condition for `find_by_cond`
+- Updated demo to use explicit imports instead of wildcard imports
+- Enhanced README with demo application section
 
 ### Removed
 - `find_by_substr` method from DB and Table classes

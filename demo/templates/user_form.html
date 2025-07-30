@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if user else 'New' }} User - Task Manager Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ 'Edit' if user else 'New' }} User</h1>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">Username *</label>
+            <input type="text" id="username" name="username" required maxlength="20"
+                   value="{{ user.username if user else '' }}"
+                   placeholder="Max 20 characters">
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" name="email" required maxlength="50"
+                   value="{{ user.email if user else '' }}"
+                   placeholder="Max 50 characters">
+        </div>
+
+        <div class="form-group">
+            <label for="role">Role *</label>
+            <select id="role" name="role" required>
+                <option value="">Select role...</option>
+                <option value="admin" {% if user and user.role == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="manager" {% if user and user.role == 'manager' %}selected{% endif %}>Manager</option>
+                <option value="user" {% if not user or user.role == 'user' %}selected{% endif %}>User</option>
+            </select>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-success">{{ 'Update' if user else 'Create' }} User</button>
+            <a href="{{ url_for('users') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Field Constraints Demo</h3>
+    <p class="text-muted">This form demonstrates CHAR field limitations:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Database Type</th>
+                <th>HTML Validation</th>
+                <th>Why This Size?</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>username</td>
+                <td>CHAR(20)</td>
+                <td>maxlength="20"</td>
+                <td>Typical username length</td>
+            </tr>
+            <tr>
+                <td>email</td>
+                <td>CHAR(50)</td>
+                <td>maxlength="50", type="email"</td>
+                <td>Most emails fit in 50 chars</td>
+            </tr>
+            <tr>
+                <td>role</td>
+                <td>CHAR(10)</td>
+                <td>Dropdown options</td>
+                <td>Longest role is "manager" (7 chars)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
+        <h4>Character Limit Demo</h4>
+        <p>Try entering text longer than the limits to see how the database constraints work:</p>
+        <ul>
+            <li>Username longer than 20 characters will be rejected</li>
+            <li>Email longer than 50 characters will be rejected</li>
+            <li>Fixed-width storage means shorter values are padded with spaces</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

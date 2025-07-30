@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if task else 'New' }} Task - Task Manager Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ 'Edit' if task else 'New' }} Task</h1>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="title">Task Title *</label>
+            <input type="text" id="title" name="title" required maxlength="50"
+                   value="{{ task.title if task else '' }}"
+                   placeholder="Max 50 characters">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description *</label>
+            <textarea id="description" name="description" required maxlength="150"
+                      placeholder="Max 150 characters">{{ task.description if task else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="project_id">Project *</label>
+            <select id="project_id" name="project_id" required>
+                <option value="">Select project...</option>
+                {% for project in projects %}
+                    <option value="{{ project.id }}"
+                            {% if task and task.project_id == project.id %}selected{% endif %}
+                            {% if request.args.get('project_id') == project.id|string %}selected{% endif %}>
+                        {{ project.name }} ({{ project.status }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="assignee_id">Assignee</label>
+            <select id="assignee_id" name="assignee_id">
+                <option value="">Unassigned</option>
+                {% for user in users %}
+                    <option value="{{ user.id }}"
+                            {% if task and task.assignee_id == user.id %}selected{% endif %}>
+                        {{ user.username }} ({{ user.role }})
+                    </option>
+                {% endfor %}
+            </select>
+            <small class="text-muted">Optional - demonstrates nullable foreign key</small>
+        </div>
+
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="status">Status *</label>
+                <select id="status" name="status" required>
+                    <option value="todo" {% if not task or task.status == 'todo' %}selected{% endif %}>To Do</option>
+                    <option value="in_progress" {% if task and task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                    <option value="done" {% if task and task.status == 'done' %}selected{% endif %}>Done</option>
+                    <option value="blocked" {% if task and task.status == 'blocked' %}selected{% endif %}>Blocked</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="priority">Priority *</label>
+                <select id="priority" name="priority" required>
+                    <option value="low" {% if task and task.priority == 'low' %}selected{% endif %}>Low</option>
+                    <option value="medium" {% if not task or task.priority == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="high" {% if task and task.priority == 'high' %}selected{% endif %}>High</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label for="due_date">Due Date</label>
+                <input type="date" id="due_date" name="due_date"
+                       value="{{ task.due_date if task else '' }}">
+                <small class="text-muted">Optional CHAR(10) field</small>
+            </div>
+
+            <div class="form-group">
+                <label for="estimated_hours">Estimated Hours</label>
+                <input type="number" id="estimated_hours" name="estimated_hours" min="1" max="999999"
+                       value="{{ task.estimated_hours if task else '' }}"
+                       placeholder="Hours (max 6 digits)">
+                <small class="text-muted">Optional INT field (6 bytes max)</small>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-success">{{ 'Update' if task else 'Create' }} Task</button>
+            <a href="{{ url_for('tasks') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Database Schema Demo</h3>
+    <p class="text-muted">This form showcases the tasks table schema:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Constraint</th>
+                <th>Demo Feature</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>title</td>
+                <td>CHAR(50)</td>
+                <td>Required, max 50 chars</td>
+                <td>HTML maxlength validation</td>
+            </tr>
+            <tr>
+                <td>description</td>
+                <td>CHAR(150)</td>
+                <td>Required, max 150 chars</td>
+                <td>Textarea with character limit</td>
+            </tr>
+            <tr>
+                <td>project_id</td>
+                <td>FK("projects")</td>
+                <td>Must exist in projects</td>
+                <td>Dropdown with FK validation</td>
+            </tr>
+            <tr>
+                <td>assignee_id</td>
+                <td>FK("users", null=True)</td>
+                <td>Optional foreign key</td>
+                <td>Nullable FK - can be unassigned</td>
+            </tr>
+            <tr>
+                <td>estimated_hours</td>
+                <td>INT(null=True)</td>
+                <td>Optional, 6-byte integer</td>
+                <td>Number input with max constraint</td>
+            </tr>
+            <tr>
+                <td>due_date</td>
+                <td>CHAR(10, null=True)</td>
+                <td>Optional date string</td>
+                <td>Date picker → string storage</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

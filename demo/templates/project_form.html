@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if project else 'New' }} Project - Task Manager Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ 'Edit' if project else 'New' }} Project</h1>
+
+    <form method="POST">
+        <div class="form-group">
+            <label for="name">Project Name *</label>
+            <input type="text" id="name" name="name" required maxlength="30"
+                   value="{{ project.name if project else '' }}"
+                   placeholder="Max 30 characters">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description *</label>
+            <textarea id="description" name="description" required maxlength="100"
+                      placeholder="Max 100 characters">{{ project.description if project else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="owner_id">Project Owner *</label>
+            <select id="owner_id" name="owner_id" required>
+                <option value="">Select owner...</option>
+                {% for user in users %}
+                    <option value="{{ user.id }}"
+                            {% if project and project.owner_id == user.id %}selected{% endif %}>
+                        {{ user.username }} ({{ user.role }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="status">Status *</label>
+            <select id="status" name="status" required>
+                <option value="active" {% if not project or project.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="paused" {% if project and project.status == 'paused' %}selected{% endif %}>Paused</option>
+                <option value="completed" {% if project and project.status == 'completed' %}selected{% endif %}>Completed</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="due_date">Due Date</label>
+            <input type="date" id="due_date" name="due_date"
+                   value="{{ project.due_date if project else '' }}">
+            <small class="text-muted">Optional - stored as CHAR(10) in YYYY-MM-DD format</small>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-success">{{ 'Update' if project else 'Create' }} Project</button>
+            <a href="{{ url_for('projects') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Field Constraints Demo</h3>
+    <p class="text-muted">This form demonstrates the database field limitations:</p>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Type</th>
+                <th>Constraint</th>
+                <th>Demo Feature</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>name</td>
+                <td>CHAR(30)</td>
+                <td>Max 30 characters</td>
+                <td>HTML maxlength validation</td>
+            </tr>
+            <tr>
+                <td>description</td>
+                <td>CHAR(100)</td>
+                <td>Max 100 characters</td>
+                <td>Textarea with character limit</td>
+            </tr>
+            <tr>
+                <td>owner_id</td>
+                <td>FK("users")</td>
+                <td>Must exist in users table</td>
+                <td>Dropdown validates foreign key</td>
+            </tr>
+            <tr>
+                <td>due_date</td>
+                <td>CHAR(10, null=True)</td>
+                <td>Optional date string</td>
+                <td>HTML date picker → string storage</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

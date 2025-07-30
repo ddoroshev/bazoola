@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }} - Task Manager Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>{{ task.title }} <span class="float-right"><a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn">Edit Task</a></span></h1>
+    <p class="text-muted mb-2">{{ task.description }}</p>
+
+    <div class="grid grid-2" style="margin-top: 1rem;">
+        <div>
+            <h3>Task Details</h3>
+            <p><strong>Status:</strong> <span class="status status-{{ task.status }}">{{ task.status }}</span></p>
+            <p><strong>Priority:</strong> <span class="priority priority-{{ task.priority }}">{{ task.priority }}</span></p>
+            <p><strong>Created:</strong> {{ task.created_date }}</p>
+            {% if task.due_date %}
+                <p><strong>Due Date:</strong> {{ task.due_date }}</p>
+            {% endif %}
+            {% if task.estimated_hours %}
+                <p><strong>Estimated Hours:</strong> {{ task.estimated_hours }}</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <h3>Relationships</h3>
+            <p><strong>Project:</strong>
+                <a href="{{ url_for('project_detail', project_id=task.project.id) }}">{{ task.project.name }}</a>
+            </p>
+            <p><strong>Assignee:</strong>
+                {% if task.assignee %}
+                    {{ task.assignee.username }} ({{ task.assignee.email }})
+                {% else %}
+                    <span class="text-muted">Unassigned</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Comments</h2>
+
+    {% if comments %}
+        {% for comment in comments %}
+            <div class="card" style="margin: 1rem 0; background: #f8f9fa;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                    <strong>{{ comment.author.username }}</strong>
+                    <span class="text-muted">{{ comment.created_date }}</span>
+                </div>
+                <p>{{ comment.content }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted">No comments yet.</p>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('add_comment', task_id=task.id) }}" style="margin-top: 1.5rem;">
+        <div class="form-group">
+            <label for="user_id">Comment as:</label>
+            <select id="user_id" name="user_id" required>
+                <option value="">Select user...</option>
+                <option value="1">admin (admin@example.com)</option>
+                <option value="2">alice (alice@example.com)</option>
+                <option value="3">bob (bob@example.com)</option>
+                <option value="4">charlie (charlie@example.com)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="content">Comment:</label>
+            <textarea id="content" name="content" required maxlength="200"
+                      placeholder="Max 200 characters"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success">Add Comment</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Database Operations Demo</h3>
+    <p class="text-muted">This page demonstrates several database features:</p>
+
+    <h4>1. Complex Join Query</h4>
+    <pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px; font-size: 0.9rem;">
+# Loading task with related project and assignee
+task = db.find_by_id("tasks", task_id, joins=[
+    Join("project_id", "project", "projects"),
+    Join("assignee_id", "assignee", "users")
+])</pre>
+
+    <h4>2. Foreign Key Lookup</h4>
+    <pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px; font-size: 0.9rem;">
+# Comments filtered by task_id with author information
+comments = db.find_by("comments", "task_id", task_id,
+                     joins=[Join("user_id", "author", "users")])</pre>
+
+    <h4>3. Data Constraints</h4>
+    <ul>
+        <li><strong>CHAR(200)</strong>: Comment content limited to 200 characters</li>
+        <li><strong>FK Validation</strong>: User must exist before commenting</li>
+        <li><strong>Nullable Fields</strong>: Due date and assignee can be empty</li>
+        <li><strong>Date Storage</strong>: Dates stored as CHAR(10) strings</li>
+    </ul>
+</div>
+{% endblock %}

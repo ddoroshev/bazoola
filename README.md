@@ -94,6 +94,25 @@ db.close()
 - **CHAR(size, null=False)**: Fixed-size character field
 - **FK(table_name, null=False)**: Foreign key field
 
+## Demo Application
+
+A full-featured task management web application is included to demonstrate Bazoola's capabilities in a real-world scenario.
+
+```bash
+# Run the demo
+poetry install
+poetry run python demo/app.py
+```
+
+Visit http://localhost:5000 to explore the demo. It showcases:
+- Complex schema with 4 interconnected tables (users, projects, tasks, comments)
+- Foreign key relationships and joins
+- CRUD operations with web forms
+- Case-insensitive search across multiple tables
+- Working within Bazoola's constraints (fixed-width fields, no transactions)
+
+See [demo/](demo/) for more details.
+
 ## API Reference
 
 ### Database Operations
