@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.0.5 - ...
+## 0.0.5 - 2025-07-30
 
 ### Added
 - `SUBSTR` and `ISUBSTR` condition classes for substring matching in `find_by_cond`
