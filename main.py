@@ -57,8 +57,8 @@ def run() -> None:
     print(book_1)
     print(book_2)
     print("Found by title")
-    books_found = db.find_by_substr(
-        "books", "title", "ook #39", joins=[Join("author_id", "author", "authors")]
+    books_found = db.find_by_cond(
+        "books", SUBSTR(title="ook #39"), joins=[Join("author_id", "author", "authors")]
     )
     for book in books_found:
         print(book)

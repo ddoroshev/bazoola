@@ -314,7 +314,7 @@ def test_db_delete_by_id_2(db, substr, expected_lst):
 
     db.delete_by_id("a", 2)
 
-    assert db.find_by_substr("a", "text", substr) == expected_lst
+    assert db.find_by_cond("a", SUBSTR(text=substr)) == expected_lst
 
 
 @use_tables("a")
@@ -471,37 +471,6 @@ def test_db_delete_by_id_twice(db):
 
 
 @use_tables("a")
-@p(
-    ["substr", "expected_lst"],
-    [
-        ("foo", []),
-        ("foo1", [{"id": 2, "text": "foo2"}, {"id": 3, "text": "foo22"}]),
-        ("foo2", [{"id": 1, "text": "foo1"}]),
-    ],
-)
-def test_db_delete_by_substr(db, substr, expected_lst):
-    db.insert("a", {"text": "foo1"})
-    db.insert("a", {"text": "foo2"})
-    db.insert("a", {"text": "foo22"})
-
-    db.delete_by_substr("a", "text", substr)
-
-    assert db.find_all("a") == expected_lst
-
-
-@use_tables("a")
-def test_db_delete_by_substr_twice(db):
-    db.insert("a", {"text": "foo1"})
-    db.insert("a", {"text": "foo2"})
-    db.insert("a", {"text": "foo22"})
-
-    db.delete_by_substr("a", "text", "foo1")
-    db.delete_by_substr("a", "text", "foo1")
-
-    assert db.find_all("a") == [{"id": 2, "text": "foo2"}, {"id": 3, "text": "foo22"}]
-
-
-@use_tables("a")
 def test_db_find_by_id(db):
     db.insert("a", {"text": "foo"})
     db.insert("a", {"text": "bar"})
@@ -626,37 +595,6 @@ def test_db_find_by_id_join_none(db):
 
     b = db.find_by_id("b2", 2, joins=[Join("a_id", "a_row", "a")])
     assert b == {"id": 2, "text": "eggs", "a_id": 1, "a_row": {"id": 1, "text": "foo"}}
-
-
-@use_tables("a")
-def test_db_find_by_substr(db):
-    db.insert("a", {"text": "foo1"})
-    db.insert("a", {"text": "foo2"})
-    db.insert("a", {"text": "foo22"})
-
-    lst = db.find_by_substr("a", "text", "oo2")
-
-    assert lst == [
-        {"id": 2, "text": "foo2"},
-        {"id": 3, "text": "foo22"},
-    ]
-
-
-@use_tables("a", "b")
-def test_db_find_by_substr_join(db):
-    db.insert("a", {"text": "foo"})
-    db.insert("a", {"text": "bar"})
-    db.insert("a", {"text": "baz"})
-    db.insert("b", {"text": "foo1", "a_id": 2})
-    db.insert("b", {"text": "foo2", "a_id": 3})
-    db.insert("b", {"text": "foo22", "a_id": 1})
-
-    lst = db.find_by_substr("b", "text", "oo2", joins=[Join("a_id", "a_row", "a")])
-
-    assert lst == [
-        {"id": 2, "text": "foo2", "a_id": 3, "a_row": {"id": 3, "text": "baz"}},
-        {"id": 3, "text": "foo22", "a_id": 1, "a_row": {"id": 1, "text": "foo"}},
-    ]
 
 
 @use_tables("a")
@@ -797,3 +735,48 @@ def test_find_by_cond_int_nullable(db, cond, expected):
     res = db.find_by_cond("d", cond)
 
     assert res == expected
+
+
+@use_tables("a")
+def test_db_find_by_cond_substr(db):
+    db.insert("a", {"text": "foo1"})
+    db.insert("a", {"text": "foo2"})
+    db.insert("a", {"text": "foo22"})
+
+    lst = db.find_by_cond("a", SUBSTR(text="oo2"))
+
+    assert lst == [
+        {"id": 2, "text": "foo2"},
+        {"id": 3, "text": "foo22"},
+    ]
+
+
+@use_tables("a", "b")
+def test_db_find_by_cond_substr_join(db):
+    db.insert("a", {"text": "foo"})
+    db.insert("a", {"text": "bar"})
+    db.insert("a", {"text": "baz"})
+    db.insert("b", {"text": "foo1", "a_id": 2})
+    db.insert("b", {"text": "foo2", "a_id": 3})
+    db.insert("b", {"text": "foo22", "a_id": 1})
+
+    lst = db.find_by_cond("b", SUBSTR(text="oo2"), joins=[Join("a_id", "a_row", "a")])
+
+    assert lst == [
+        {"id": 2, "text": "foo2", "a_id": 3, "a_row": {"id": 3, "text": "baz"}},
+        {"id": 3, "text": "foo22", "a_id": 1, "a_row": {"id": 1, "text": "foo"}},
+    ]
+
+
+@use_tables("a")
+def test_db_find_by_cond_isubstr(db):
+    db.insert("a", {"text": "foo1"})
+    db.insert("a", {"text": "FOO2"})
+    db.insert("a", {"text": "foO22"})
+
+    lst = db.find_by_cond("a", ISUBSTR(text="oo2"))
+
+    assert lst == [
+        {"id": 2, "text": "FOO2"},
+        {"id": 3, "text": "foO22"},
+    ]

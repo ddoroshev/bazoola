@@ -425,13 +425,6 @@ class Table:
         self.f.write(b"*" * (self.row_size - 1) + b"\n")
         self.free_rownums.push(rownum)
 
-    def delete_by_substr(self, field_name: str, substr: str) -> None:
-        assert field_name and substr
-
-        for row in self.iterate():
-            if substr in row[field_name]:
-                self.delete_by_id(row["id"])
-
     def iterate(self) -> Generator[Row]:
         self.f.seek(0)
         while row := self.f.read(self.row_size):
@@ -457,15 +450,6 @@ class Table:
         res = []
         for row in self.iterate():
             if row.get(field_name) == value:
-                res.append(row)
-        return res
-
-    def find_by_substr(self, field_name: str, substr: str) -> list[Row]:
-        assert field_name and substr
-
-        res = []
-        for row in self.iterate():
-            if substr in str(row.get(field_name, "")):
                 res.append(row)
         return res
 
@@ -575,6 +559,31 @@ class GT(BaseCond):
         return True
 
 
+class SUBSTR(BaseCond):
+    def eval(self, row: Row) -> bool:
+        for field_name, value in self.params.items():
+            row_value = row.get(field_name)
+            if row_value is None or value not in str(row_value):
+                return False
+        return True
+
+
+class ISUBSTR(BaseCond):
+    def eval(self, row: Row) -> bool:
+        for field_name, value in self.params.items():
+            assert isinstance(value, str)
+
+            row_value = row.get(field_name)
+            if row_value is None:
+                return False
+
+            lowercased_value = value.lower()
+            lowercased_row_value = str(row_value).lower()
+            if lowercased_value not in lowercased_row_value:
+                return False
+        return True
+
+
 class Row(dict):
     pass
 
@@ -646,13 +655,6 @@ class DB:
         with self.lock():
             self.tables[table_name].delete_by_id(pk)
 
-    def delete_by_substr(self, table_name: str, field_name: str, substr: str) -> None:
-        assert table_name in self.tables, "No such table"
-        assert field_name and substr
-
-        with self.lock():
-            self.tables[table_name].delete_by_substr(field_name, substr)
-
     def update_by_id(self, table_name: str, pk: int, values: dict) -> Row:
         assert table_name in self.tables, "No such table"
 
@@ -683,26 +685,6 @@ class DB:
 
         with self.lock():
             res = self.tables[table_name].find_by(field_name, value)
-            for join in joins:
-                for i in range(len(res)):
-                    res[i] = self.perform_join(res[i], join, self.tables[table_name])
-        return res
-
-    def find_by_substr(
-        self,
-        table_name: str,
-        field_name: str,
-        substr: str,
-        *,
-        joins: list[BaseJoin] | None = None,
-    ) -> list[Row]:
-        assert table_name in self.tables, "No such table"
-        assert field_name and substr
-        if joins is None:
-            joins = []
-
-        with self.lock():
-            res = self.tables[table_name].find_by_substr(field_name, substr)
             for join in joins:
                 for i in range(len(res)):
                     res[i] = self.perform_join(res[i], join, self.tables[table_name])

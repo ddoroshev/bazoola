@@ -111,17 +111,11 @@ rows = db.find_all("table_name")
 # Find by field value
 rows = db.find_by("table_name", "field_name", value)
 
-# Find by substring
-rows = db.find_by_substr("table_name", "field_name", "substr")
-
 # Update a record
 row = db.update_by_id("table_name", id, {"field": "new_value"})
 
 # Delete a record
 db.delete_by_id("table_name", id)
-
-# Delete by substring match
-db.delete_by_substr("table_name", "field_name", "substr")
 
 # Truncate table
 db.truncate("table_name", cascade=False)
@@ -135,6 +129,8 @@ from bazoola import GT, LT
 # Find with conditions
 rows = db.find_by_cond("books", GT(year=2020))
 rows = db.find_by_cond("books", LT(year=2000))
+rows = db.find_by_cond("table_name", SUBSTR(field_name="substr"))
+rows = db.find_by_cond("table_name", ISUBSTR(field_name="SuBsTr"))
 
 # Query with joins
 rows = db.find_all("books", joins=[

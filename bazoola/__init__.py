@@ -21,6 +21,8 @@ from bazoola.db import (
     BaseCond,
     LT,
     GT,
+    ISUBSTR,
+    SUBSTR,
     Row,
     DB,
 )
@@ -48,6 +50,8 @@ __all__ = [
     "BaseCond",
     "LT",
     "GT",
+    "ISUBSTR",
+    "SUBSTR",
     "Row",
     "DB",
 ]

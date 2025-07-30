@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.5 - ...
+
+### Added
+- `SUBSTR` and `ISUBSTR` condition classes for substring matching in `find_by_cond`
+
+### Changed
+- Replaced `find_by_substr` with `SUBSTR` condition for `find_by_cond`
+
+### Removed
+- `find_by_substr` method from DB and Table classes
+- `delete_by_substr` method from DB and Table classes
+
 ## 0.0.4 - 2025-07-21
 
 ### Added
