@@ -1,6 +1,7 @@
 # Bazoola
 
 [![CI](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/ddoroshev/bazoola/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/bazoola.svg)](https://badge.fury.io/py/bazoola)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
