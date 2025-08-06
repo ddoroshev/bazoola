@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import fcntl
 import os
+import threading
 from contextlib import contextmanager
-from typing import BinaryIO, Generator
+from typing import TYPE_CHECKING, BinaryIO, Generator
 
 from .errors import DBError
+
+if TYPE_CHECKING:
+    from .table import Table
 
 
 class File:
@@ -13,13 +17,11 @@ class File:
         self.f = file
 
     @classmethod
-    def open(
-        cls, path: str, default_body: bytes | None = None, base_dir: str | None = None
-    ) -> File:
-        assert path
+    def open(cls, path: str, base_dir: str, default_body: bytes | None = None) -> File:
+        assert path, "Path is required"
+        assert base_dir, "Base dir is required"
 
-        if base_dir:
-            path = os.path.join(base_dir, path)
+        path = os.path.join(base_dir, path)
 
         try:
             f = open(path, "rb+", buffering=0)
@@ -89,8 +91,8 @@ class File:
 
 
 class PersistentInt:
-    def __init__(self, fname: str, default: int, base_dir: str | None = None) -> None:
-        self.f = File.open(fname, str(default).encode(), base_dir=base_dir)
+    def __init__(self, fname: str, default: int, base_dir: str) -> None:
+        self.f = File.open(fname, base_dir=base_dir, default_body=str(default).encode())
 
     def get(self) -> int:
         self.f.seek(0)
@@ -105,7 +107,7 @@ class PersistentInt:
 
 
 class Array:
-    def __init__(self, fname: str, item_size: int, base_dir: str | None = None) -> None:
+    def __init__(self, fname: str, item_size: int, base_dir: str) -> None:
         self.f = File.open(fname, base_dir=base_dir)
         self.item_size = item_size
         self.fmt = f"%-{item_size}s"
@@ -141,7 +143,7 @@ class Stack:
         self.fmt = f"%-{item_size}s"
 
     @classmethod
-    def from_file_path(cls, path: str, item_size: int, base_dir: str | None = None) -> Stack:
+    def from_file_path(cls, path: str, item_size: int, base_dir: str) -> Stack:
         return cls(File.open(path, base_dir=base_dir), item_size)
 
     def close(self) -> None:
@@ -169,7 +171,7 @@ class Stack:
 
 
 class FreeRownums:
-    def __init__(self, table_name: str, base_dir: str | None = None) -> None:
+    def __init__(self, table_name: str, base_dir: str) -> None:
         self.stack = Stack.from_file_path(f"{table_name}__free.dat", 6, base_dir=base_dir)
 
     def close(self) -> None:
@@ -180,3 +182,64 @@ class FreeRownums:
 
     def pop(self) -> int | None:
         return self.stack.pop()
+
+
+class TableStorage:
+    tables: dict[str, Table]
+
+    def __init__(self, cls_tables: list[type[Table]], base_dir: str) -> None:
+        self.base_dir = base_dir
+        os.makedirs(self.base_dir, exist_ok=True)
+
+        self._threadlock = threading.RLock()
+        self._lockfile = File.open(".lock", base_dir=base_dir)
+
+        self.tables = {x.name: x(self.base_dir) for x in cls_tables}
+
+    @contextmanager
+    def lock(self) -> Generator[None, None, None]:
+        with self._threadlock, self._lockfile.lock():
+            yield
+
+    def close(self) -> None:
+        for t in self.tables.values():
+            t.close()
+        self.tables = {}
+
+    def truncate(self, truncated_table_name: str, cascade: bool = False) -> None:
+        dependent_tables = []
+        for table_name, table in self.tables.items():
+            if table_name == truncated_table_name:
+                continue
+            for field, rel_table in table.schema.relations():
+                if rel_table == truncated_table_name:
+                    dependent_tables.append(table_name)
+                    break
+
+        if not cascade:
+            for dep_table_name in dependent_tables:
+                dep_table = self.tables[dep_table_name]
+                for field, rel_table in dep_table.schema.relations():
+                    if rel_table == truncated_table_name:
+                        for row in dep_table.iterate():
+                            if row[field] is not None:
+                                raise ValueError(
+                                    f"Cannot truncate table '{truncated_table_name}': "
+                                    f"table '{dep_table_name}' has referring rows. "
+                                    f"Use `cascade` option to truncate dependent tables."
+                                )
+
+        if cascade:
+            for dep_table_name in dependent_tables:
+                self.truncate(dep_table_name, cascade=True)
+
+        truncated_table = self.tables[truncated_table_name]
+        truncated_table.f.seek(0)
+        truncated_table.f.truncate()
+
+        truncated_table.f_seqnum.set(0)
+
+        truncated_table.rownum_index.f.seek(0)
+        truncated_table.rownum_index.f.truncate()
+
+        truncated_table.free_rownums.stack.f.truncate()

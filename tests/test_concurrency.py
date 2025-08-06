@@ -145,7 +145,9 @@ def test_concurrent_update_same_record(db):
     def update_worker(worker_id):
         try:
             for i in range(5):
-                with db.lock():
+                with db.storage.lock():
+                    # TODO: Probably get rid of this find_by_id,
+                    #       because it looks redundant
                     current = db.find_by_id("c", record_id)
                     if not current:
                         errors.append(f"Worker {worker_id} error: {record_id=} is missing")

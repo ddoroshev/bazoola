@@ -84,3 +84,8 @@ known-first-party = ["bazoola"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["F403", "F405"]
 "main.py" = ["F403", "F405"]
+
+[tool.mypy]
+exclude = [
+    "^demo/",
+]

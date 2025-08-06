@@ -5,17 +5,19 @@ from .cond import (
     SUBSTR,
     BaseCond,
 )
-from .db import (
-    DB,
-    BaseJoin,
-    InverseJoin,
-    Join,
-    Schema,
-    Table,
-)
+from .db import DB
 from .errors import DBError, NotFoundError, ValidationError
-from .fields import CHAR, FK, INT, PK, Field, FieldType
+from .fields import (
+    CHAR,
+    FK,
+    INT,
+    PK,
+    Field,
+    FieldType,
+)
+from .join import BaseJoin, InverseJoin, Join
 from .row import Row
+from .table import Schema, Table
 
 __all__ = [
     "CHAR",
