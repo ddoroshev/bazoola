@@ -128,9 +128,6 @@ row = db.find_by_id("table_name", id)
 # Find all records
 rows = db.find_all("table_name")
 
-# Find by field value
-rows = db.find_by("table_name", "field_name", value)
-
 # Update a record
 row = db.update_by_id("table_name", id, {"field": "new_value"})
 
@@ -147,6 +144,7 @@ db.truncate("table_name", cascade=False)
 from bazoola import GT, LT
 
 # Find with conditions
+rows = db.find_by_cond("books", EQ(year=2020))
 rows = db.find_by_cond("books", GT(year=2020))
 rows = db.find_by_cond("books", LT(year=2000))
 rows = db.find_by_cond("table_name", SUBSTR(field_name="substr"))

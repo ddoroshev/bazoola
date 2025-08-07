@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
+from .cond import EQ
+
 if TYPE_CHECKING:
     from .table import Table
 
@@ -35,5 +37,5 @@ class InverseJoin(Join):
     def join(self, pk: int | None, foreign_table: Table) -> dict:
         assert pk is not None
 
-        foreign_rows = foreign_table.find_by(self.fk_attr, pk)
+        foreign_rows = foreign_table.find_by_cond(EQ(**{self.fk_attr: pk}))
         return {self.key: foreign_rows}

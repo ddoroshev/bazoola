@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from .cond import BaseCond
 from .join import BaseJoin, InverseJoin
 from .row import Row
@@ -76,26 +74,6 @@ class DB:
                     raise ValueError(f"Item id={fk_val} does not exist in '{fk_table}'")
 
             return self.tables[table_name].update_by_id(pk, values)
-
-    def find_by(
-        self,
-        table_name: str,
-        field_name: str,
-        value: Any,
-        *,
-        joins: list[BaseJoin] | None = None,
-    ) -> list[Row]:
-        assert table_name in self.tables, "No such table"
-        assert field_name
-        if joins is None:
-            joins = []
-
-        with self.storage.lock():
-            res = self.tables[table_name].find_by(field_name, value)
-            for join in joins:
-                for i in range(len(res)):
-                    res[i] = self.perform_join(res[i], join, self.tables[table_name])
-        return res
 
     def find_by_cond(
         self, table_name: str, cond: BaseCond, joins: list[BaseJoin] | None = None

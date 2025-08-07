@@ -8,7 +8,7 @@ from flask import Flask, flash, redirect, render_template, request, url_for
 from sample_data import init_sample_data
 from schema import TableComments, TableProjects, TableTasks, TableUsers
 
-from bazoola import DB, ISUBSTR, Join
+from bazoola import DB, EQ, ISUBSTR, Join
 
 app = Flask(__name__)
 app.secret_key = "demo-secret-key"
@@ -79,8 +79,8 @@ def project_detail(project_id):
         flash("Project not found", "error")
         return redirect(url_for("projects"))
 
-    tasks = db.find_by(
-        "tasks", "project_id", project_id, joins=[Join("assignee_id", "assignee", "users")]
+    tasks = db.find_by_cond(
+        "tasks", EQ(project_id=project_id), joins=[Join("assignee_id", "assignee", "users")]
     )
     return render_template("project_detail.html", project=project, tasks=tasks)
 
@@ -136,8 +136,8 @@ def task_detail(task_id):
         flash("Task not found", "error")
         return redirect(url_for("tasks"))
 
-    comments = db.find_by(
-        "comments", "task_id", task_id, joins=[Join("user_id", "author", "users")]
+    comments = db.find_by_cond(
+        "comments", EQ(task_id=task_id), joins=[Join("user_id", "author", "users")]
     )
     return render_template("task_detail.html", task=task, comments=comments)
 

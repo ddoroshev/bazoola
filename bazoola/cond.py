@@ -13,6 +13,14 @@ class BaseCond(ABC):
     def eval(self, row: Row) -> bool: ...
 
 
+class EQ(BaseCond):
+    def eval(self, row: Row) -> bool:
+        for field_name, value in self.params.items():
+            if row.get(field_name) != value:
+                return False
+        return True
+
+
 class LT(BaseCond):
     def eval(self, row: Row) -> bool:
         for field_name, value in self.params.items():

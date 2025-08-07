@@ -598,17 +598,6 @@ def test_db_find_by_id_join_none(db):
     assert b == {"id": 2, "text": "eggs", "a_id": 1, "a_row": {"id": 1, "text": "foo"}}
 
 
-@use_tables("a")
-def test_db_find_by(db):
-    db.insert("a", {"text": "foo1"})
-    db.insert("a", {"text": "foo2"})
-    db.insert("a", {"text": "foo22"})
-
-    lst = db.find_by("a", "text", "foo2")
-
-    assert lst == [{"id": 2, "text": "foo2"}]
-
-
 @use_tables("a", "b")
 def test_db_find_by_join(db):
     db.insert("a", {"text": "foo"})
@@ -618,7 +607,7 @@ def test_db_find_by_join(db):
     db.insert("b", {"text": "foo2", "a_id": 3})
     db.insert("b", {"text": "foo22", "a_id": 1})
 
-    lst = db.find_by("b", "text", "foo2", joins=[Join("a_id", "a_row", "a")])
+    lst = db.find_by_cond("b", EQ(text="foo2"), joins=[Join("a_id", "a_row", "a")])
 
     assert lst == [
         {"id": 2, "text": "foo2", "a_id": 3, "a_row": {"id": 3, "text": "baz"}},
@@ -781,3 +770,14 @@ def test_db_find_by_cond_isubstr(db):
         {"id": 2, "text": "FOO2"},
         {"id": 3, "text": "foO22"},
     ]
+
+
+@use_tables("a")
+def test_db_find_by_cond_eq(db):
+    db.insert("a", {"text": "foo1"})
+    db.insert("a", {"text": "foo2"})
+    db.insert("a", {"text": "foo22"})
+
+    lst = db.find_by_cond("a", EQ(text="foo2"))
+
+    assert lst == [{"id": 2, "text": "foo2"}]

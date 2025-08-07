@@ -91,8 +91,8 @@ task = db.find_by_id("tasks", task_id, joins=[
     <h4>2. Foreign Key Lookup</h4>
     <pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px; font-size: 0.9rem;">
 # Comments filtered by task_id with author information
-comments = db.find_by("comments", "task_id", task_id,
-                     joins=[Join("user_id", "author", "users")])</pre>
+comments = db.find_by_cond("comments", EQ(task_id=task_id),
+                           joins=[Join("user_id", "author", "users")])</pre>
 
     <h4>3. Data Constraints</h4>
     <ul>

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Generator
+from typing import Generator
 
 from .cond import BaseCond
 from .errors import NotFoundError, ValidationError
@@ -146,13 +146,6 @@ class Table:
         if not row:
             return None
         return self.schema.parse(row)
-
-    def find_by(self, field_name: str, value: Any) -> list[Row]:
-        res = []
-        for row in self.iterate():
-            if row.get(field_name) == value:
-                res.append(row)
-        return res
 
     def find_by_cond(self, cond: BaseCond) -> list[Row]:
         res = []

@@ -1,4 +1,5 @@
 from .cond import (
+    EQ,
     GT,
     ISUBSTR,
     LT,
@@ -22,6 +23,7 @@ from .table import Schema, Table
 __all__ = [
     "CHAR",
     "DB",
+    "EQ",
     "FK",
     "GT",
     "INT",
