@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.0.6 - 2025-08-11
+
+### Added
+- Script to update LOC in repository description
+- PyPI badge in README
+
+### Changed
+- Demo application improvements with extracted sample data
+- Refactored `find_by` to use `find_by_cond` for better consistency
+
+### Fixed
+- Concurrency issue resolution
+
 ## 0.0.5 - 2025-07-30
 
 ### Added
