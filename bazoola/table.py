@@ -147,23 +147,6 @@ class Table:
             return None
         return self.schema.parse(row)
 
-    def find_by_ids(self, ids: list[int]) -> dict[int, Row]:
-        assert len(ids), "At least one ID is required"
-
-        rownums = []
-        for pk in ids:
-            rownum = self.rownum_index.get(pk - 1)
-            if rownum is not None:
-                rownums.append((rownum, pk))
-        rownums.sort(key=lambda row: row[0])
-        result = {}
-        for rownum, pk in rownums:
-            self.f.seek(rownum * self.row_size)
-            if row := self.f.read(self.row_size):
-                if parsed_row := self.schema.parse(row):
-                    result[pk] = parsed_row
-        return result
-
     def find_by_cond(self, cond: BaseCond) -> list[Row]:
         res = []
         for row in self.iterate():

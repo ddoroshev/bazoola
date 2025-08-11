@@ -501,17 +501,6 @@ def test_db_find_by_id_inconsistent_int(db):
 
 
 @use_tables("a")
-def test_db_find_by_ids(db):
-    db.insert("a", {"text": "foo"})
-    db.insert("a", {"text": "bar"})
-    db.insert("a", {"text": "baz"})
-
-    res = db.find_by_ids("a", [1, 3])
-
-    assert res == {1: {"id": 1, "text": "foo"}, 3: {"id": 3, "text": "baz"}}
-
-
-@use_tables("a")
 def test_db_find_all(db):
     db.insert("a", {"text": "foo"})
     db.insert("a", {"text": "bar"})

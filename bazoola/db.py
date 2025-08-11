@@ -54,21 +54,6 @@ class DB:
                     row = self.perform_join(row, join, self.tables[table_name])
         return row
 
-    def find_by_ids(
-        self, table_name: str, ids: list[int], *, joins: list[BaseJoin] | None = None
-    ) -> dict[int, Row]:
-        assert table_name in self.tables, "No such table"
-        if joins is None:
-            joins = []
-
-        with self.storage.lock():
-            rows = self.tables[table_name].find_by_ids(ids)
-            for join in joins:
-                for pk, row in rows.items():
-                    rows[pk] = self.perform_join(row, join, self.tables[table_name])
-
-        return rows
-
     def delete_by_id(self, table_name: str, pk: int) -> None:
         assert table_name in self.tables, "No such table"
 
