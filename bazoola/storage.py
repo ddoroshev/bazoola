@@ -193,8 +193,8 @@ class TableStorage:
 
         self._threadlock = threading.RLock()
         self._lockfile = File.open(".lock", base_dir=base_dir)
-
-        self.tables = {x.name: x(self.base_dir) for x in cls_tables}
+        with self.lock():
+            self.tables = {x.name: x(self.base_dir) for x in cls_tables}
 
     @contextmanager
     def lock(self) -> Generator[None, None, None]:
