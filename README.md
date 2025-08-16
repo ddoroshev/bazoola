@@ -200,7 +200,6 @@ poetry run ruff check .
 
 ## Limitations
 
-- No multi-threading support
 - No transactions or rollback support
 - Limited query optimization
 - Fixed-size fields only
