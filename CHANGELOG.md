@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.7 - 2025-08-16
+
+### Fixed
+- Fixed lockfile not being closed in TableStorage teardown
+
 ## 0.0.6 - 2025-08-11
 
 ### Added

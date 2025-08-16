@@ -204,6 +204,7 @@ class TableStorage:
     def close(self) -> None:
         for t in self.tables.values():
             t.close()
+        self._lockfile.close()
         self.tables = {}
 
     def truncate(self, truncated_table_name: str, cascade: bool = False) -> None:
