@@ -245,11 +245,14 @@ class TableStorage:
 
         truncated_table.free_rownums.stack.f.truncate()
 
+        if truncated_table.text_storage:
+            truncated_table.text_storage.truncate()
+
 
 class TextStorage:
-    def __init__(self, base_dir: str, table_name: str) -> None:
+    def __init__(self, table_name: str, base_dir: str) -> None:
         os.makedirs(base_dir, exist_ok=True)
-        self.f = File.open(base_dir, f"{table_name}.text.dat")
+        self.f = File.open(f"{table_name}.text.dat", base_dir=base_dir)
 
     def close(self) -> None:
         self.f.close()
@@ -257,3 +260,20 @@ class TextStorage:
     def truncate(self) -> None:
         self.f.seek(0)
         self.f.truncate()
+
+    def add(self, text: str | bytes) -> int:
+        if isinstance(text, str):
+            text = text.encode()
+
+        self.f.seek(0, os.SEEK_END)
+        pos = self.f.tell()
+        length = "%-6s" % len(text)
+        self.f.write(length.encode() + text)
+        return pos
+
+    def get(self, ref: int) -> bytes:
+        self.f.seek(ref)
+        s_length = self.f.read(6)
+        i_length = int(s_length)
+        text = self.f.read(i_length)
+        return text
