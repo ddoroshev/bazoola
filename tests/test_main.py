@@ -1216,3 +1216,91 @@ def test_db_insert_multiple_text_fields(db):
             b"3     bar"
         ),
     )
+
+
+@use_tables("f")
+def test_db_find_by_cond_eq_text(db):
+    db.insert("f", {"text": "hello"})
+    db.insert("f", {"text": "world"})
+    db.insert("f", {"text": "hello world"})
+
+    lst = db.find_by_cond("f", EQ(text="world"))
+
+    assert lst == [{"id": 2, "text": "world"}]
+
+
+@use_tables("f")
+def test_db_find_by_cond_substr_text(db):
+    db.insert("f", {"text": "hello"})
+    db.insert("f", {"text": "world"})
+    db.insert("f", {"text": "hello world"})
+
+    lst = db.find_by_cond("f", SUBSTR(text="llo"))
+
+    assert lst == [
+        {"id": 1, "text": "hello"},
+        {"id": 3, "text": "hello world"},
+    ]
+
+
+@use_tables("f")
+def test_db_find_by_cond_isubstr_text(db):
+    db.insert("f", {"text": "Hello"})
+    db.insert("f", {"text": "WORLD"})
+    db.insert("f", {"text": "hello World"})
+
+    lst = db.find_by_cond("f", ISUBSTR(text="world"))
+
+    assert lst == [
+        {"id": 2, "text": "WORLD"},
+        {"id": 3, "text": "hello World"},
+    ]
+
+
+@use_tables("f")
+def test_db_text_persistence(db):
+    db.insert("f", {"text": "persistent data"})
+    db.insert("f", {"text": "another row"})
+    db.close()
+
+    db2 = DB([TableF], base_dir=TEST_BASE_DIR)
+    try:
+        rows = db2.find_all("f")
+        assert rows == [
+            {"id": 1, "text": "persistent data"},
+            {"id": 2, "text": "another row"},
+        ]
+    finally:
+        db2.close()
+
+
+@use_tables("f")
+def test_db_update_text_shorter(db):
+    db.insert("f", {"text": "long text value"})
+
+    res = db.update_by_id("f", 1, {"text": "short"})
+
+    assert res == {"id": 1, "text": "short"}
+    assert db.find_by_id("f", 1) == {"id": 1, "text": "short"}
+
+
+@use_tables("f")
+def test_db_update_text_longer(db):
+    db.insert("f", {"text": "short"})
+
+    res = db.update_by_id("f", 1, {"text": "much longer text value"})
+
+    assert res == {"id": 1, "text": "much longer text value"}
+    assert db.find_by_id("f", 1) == {"id": 1, "text": "much longer text value"}
+
+
+@use_tables("f")
+def test_db_multiple_updates_same_row(db):
+    db.insert("f", {"text": "initial"})
+
+    db.update_by_id("f", 1, {"text": "second"})
+    db.update_by_id("f", 1, {"text": "third"})
+    res = db.update_by_id("f", 1, {"text": "final"})
+
+    assert res == {"id": 1, "text": "final"}
+    assert db.find_by_id("f", 1) == {"id": 1, "text": "final"}
