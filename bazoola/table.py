@@ -88,7 +88,7 @@ class Table:
             values = values | {"id": new_id}
 
         # handle text fields separately
-        text_values: dict[str, str] = {}
+        text_values: dict[str, str | bytes] = {}
         text_fields = self.schema.text_fields()
         if text_fields:
             assert self.text_storage
@@ -143,6 +143,16 @@ class Table:
         if values is None:
             # already deleted
             raise NotFoundError(f"Row with ID={pk} does not exist")
+
+        # handle text fields separately
+        text_fields = self.schema.text_fields()
+        if text_fields:
+            assert self.text_storage
+            for text_field in text_fields:
+                ref = values.get(text_field)
+                if ref is None:
+                    continue
+                self.text_storage.delete(ref)
 
         self.f.seek(rownum * self.row_size)
         self.rownum_index.set(pk - 1, None)

@@ -277,3 +277,10 @@ class TextStorage:
         i_length = int(s_length)
         text = self.f.read(i_length)
         return text
+
+    def delete(self, ref: int) -> None:
+        self.f.seek(ref)
+        s_length = self.f.read(6)
+        i_length = int(s_length)
+        self.f.seek(ref)
+        self.f.write(b"#" * (6 + i_length))
