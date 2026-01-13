@@ -13,6 +13,7 @@ from .fields import (
     FK,
     INT,
     PK,
+    TEXT,
     Field,
     FieldType,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "LT",
     "PK",
     "SUBSTR",
+    "TEXT",
     "BaseCond",
     "BaseJoin",
     "DBError",

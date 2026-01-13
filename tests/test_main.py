@@ -781,3 +781,438 @@ def test_db_find_by_cond_eq(db):
     lst = db.find_by_cond("a", EQ(text="foo2"))
 
     assert lst == [{"id": 2, "text": "foo2"}]
+
+
+@use_tables("f")
+@p(
+    ["text", "expected_row", "expected_table_contents", "expected_text_contents"],
+    [
+        ("foo", {"id": 1, "text": "foo"}, b"1     0     \n", b"3     foo"),
+        ("", {"id": 1, "text": ""}, b"1     0     \n", b"0     "),
+        ("café", {"id": 1, "text": "café"}, b"1     0     \n", b"5     caf\xc3\xa9"),
+        (
+            "some\nthing\treally\0weird",
+            {"id": 1, "text": "some\nthing\treally\0weird"},
+            b"1     0     \n",
+            b"23    some\nthing\treally\0weird",
+        ),
+    ],
+)
+def test_db_insert_single_text(
+    db, text, expected_row, expected_table_contents, expected_text_contents
+):
+    f = db.insert("f", {"text": text})
+
+    assert f == expected_row
+    assert_file_contents("f.dat", expected_table_contents)
+    assert_file_contents("f.text.dat", expected_text_contents)
+
+
+@use_tables("f")
+@p("text", ["foo", "", "café", "some\nthing\treally\0weird"])
+def test_db_read_back_text(db, text):
+    db.insert("f", {"text": text})
+
+    res = db.find_by_id("f", 1)
+    assert res["text"] == text
+
+
+@use_tables("f")
+def test_db_insert_text_not_null_error(db):
+    with pytest.raises(ValidationError, match="'text': The value can't be None"):
+        db.insert("f", {"text": None})
+
+    assert_file_contents("f.dat", b"")
+    assert_file_contents("f.text.dat", b"")
+
+
+@use_tables("f")
+def test_db_insert_text_type_error(db):
+    with pytest.raises(ValidationError, match="'text': Type mismatch"):
+        db.insert("f", {"text": 1})
+
+    assert_file_contents("f.dat", b"")
+    assert_file_contents("f.text.dat", b"")
+
+
+@use_tables("f")
+def test_db_insert_multiple_texts(db):
+    f1 = db.insert("f", {"text": "foo"})
+    f2 = db.insert("f", {"text": "eggs"})
+    f3 = db.insert("f", {"text": "multiple"})
+
+    assert f1["id"] == 1
+    assert f1["text"] == "foo"
+    assert f2["id"] == 2
+    assert f2["text"] == "eggs"
+    assert f3["id"] == 3
+    assert f3["text"] == "multiple"
+    assert_file_contents(
+        "f.dat",
+        (
+            b"1     0     \n"  # fmt: skip
+            b"2     9     \n"
+            b"3     19    \n"
+        ),
+    )
+    assert_file_contents(
+        "f.text.dat",
+        (
+            b"3     foo"  # fmt: skip
+            b"4     eggs"
+            b"8     multiple"
+        ),
+    )
+
+
+@use_tables("f")
+@p(
+    ["pk", "values", "expected", "expected_table_contents", "expected_text_contents"],
+    [
+        (
+            1,
+            {"text": "foo_1"},
+            {"id": 1, "text": "foo_1"},
+            (
+                b"1     18    \n"  # fmt: skip
+                b"2     9     \n"
+            ),
+            (
+                b"#########"  # fmt: skip
+                b"3     bar"
+                b"5     foo_1"
+            ),
+        ),
+        (
+            2,
+            {"text": "bar_1"},
+            {"id": 2, "text": "bar_1"},
+            (
+                b"1     0     \n"  # fmt: skip
+                b"2     18    \n"
+            ),
+            (
+                b"3     foo"  # fmt: skip
+                b"#########"
+                b"5     bar_1"
+            ),
+        ),
+    ],
+)
+def test_db_update_texts_by_id(
+    db, pk, values, expected, expected_table_contents, expected_text_contents
+):
+    db.insert("f", {"text": "foo"})
+    db.insert("f", {"text": "bar"})
+
+    res = db.update_by_id("f", pk, values)
+
+    assert res == expected
+    assert_file_contents("f.dat", expected_table_contents)
+    assert_file_contents("f.text.dat", expected_text_contents)
+
+
+@use_tables("f")
+@p(
+    ["pk", "expected_table_contents", "expected_text_contents"],
+    [
+        (
+            1,
+            (
+                b"************\n"  # fmt: skip
+                b"2     9     \n"
+                b"3     18    \n"
+            ),
+            (
+                b"#########"  # fmt: skip
+                b"3     bar"
+                b"3     baz"
+            ),
+        ),
+        (
+            2,
+            (
+                b"1     0     \n"  # fmt: skip
+                b"************\n"
+                b"3     18    \n"
+            ),
+            (
+                b"3     foo"  # fmt: skip
+                b"#########"
+                b"3     baz"
+            ),
+        ),
+        (
+            3,
+            (
+                b"1     0     \n"  # fmt: skip
+                b"2     9     \n"
+                b"************\n"
+            ),
+            (
+                b"3     foo"  # fmt: skip
+                b"3     bar"
+                b"#########"
+            ),
+        ),
+    ],
+)
+def test_db_delete_texts_by_id(db, pk, expected_table_contents, expected_text_contents):
+    db.insert("f", {"text": "foo"})
+    db.insert("f", {"text": "bar"})
+    db.insert("f", {"text": "baz"})
+
+    db.delete_by_id("f", pk)
+
+    assert_file_contents("f.dat", expected_table_contents)
+    assert_file_contents("f.text.dat", expected_text_contents)
+
+
+@use_tables("f")
+@p(
+    [
+        "pks",
+        "n",
+        "expected_rows",
+        "expected_fetched_rows",
+        "expected_table_contents",
+        "expected_text_contents",
+    ],
+    [
+        (
+            [1, 2],
+            1,
+            [{"id": 4, "text": "new_1"}],
+            [
+                {"id": 3, "text": "baz"},
+                {"id": 4, "text": "new_1"},
+            ],
+            (
+                b"************\n"  # fmt: skip
+                b"************\n"
+                b"3     18    \n"
+                b"4     27    \n"
+            ),
+            (
+                b"#########"  # fmt: skip
+                b"#########"
+                b"3     baz"
+                b"5     new_1"
+            ),
+        ),
+        (
+            [1, 2],
+            2,
+            [
+                {"id": 4, "text": "new_1"},
+                {"id": 5, "text": "new_2"},
+            ],
+            [
+                {"id": 3, "text": "baz"},
+                {"id": 4, "text": "new_1"},
+                {"id": 5, "text": "new_2"},
+            ],
+            (
+                b"************\n"  # fmt: skip
+                b"************\n"
+                b"3     18    \n"
+                b"4     27    \n"
+                b"5     38    \n"
+            ),
+            (
+                b"#########"  # fmt: skip
+                b"#########"
+                b"3     baz"
+                b"5     new_1"
+                b"5     new_2"
+            ),
+        ),
+        (
+            [1, 3],
+            1,
+            [{"id": 4, "text": "new_1"}],
+            [
+                {"id": 2, "text": "bar"},
+                {"id": 4, "text": "new_1"},
+            ],
+            (
+                b"************\n"  # fmt: skip
+                b"2     9     \n"
+                b"************\n"
+                b"4     27    \n"
+            ),
+            (
+                b"#########"  # fmt: skip
+                b"3     bar"
+                b"#########"
+                b"5     new_1"
+            ),
+        ),
+    ],
+)
+def test_db_delete_texts_then_insert(
+    db,
+    pks,
+    n,
+    expected_rows,
+    expected_fetched_rows,
+    expected_table_contents,
+    expected_text_contents,
+):
+    db.insert("f", {"text": "foo"})
+    db.insert("f", {"text": "bar"})
+    db.insert("f", {"text": "baz"})
+
+    for pk in pks:
+        db.delete_by_id("f", pk)
+
+    inserted_rows = []
+    for i in range(n):
+        res = db.insert("f", {"text": f"new_{i + 1}"})
+        inserted_rows.append(res)
+
+    assert inserted_rows == expected_rows
+    assert db.find_all("f") == expected_fetched_rows
+
+    assert_file_contents("f.dat", expected_table_contents)
+    assert_file_contents("f.text.dat", expected_text_contents)
+
+
+@use_tables("f")
+def test_db_truncate_with_texts(db):
+    db.insert("f", {"text": "foo"})
+    db.insert("f", {"text": "bar"})
+    db.insert("f", {"text": "baz"})
+
+    db.truncate("f")
+
+    assert_file_contents("f.dat", b"")
+    assert_file_contents("f.text.dat", b"")
+
+
+@use_tables("f2")
+def test_db_insert_single_nullable_text(db):
+    f2 = db.insert("f2", {"text": None})
+
+    assert f2["id"] == 1
+    assert f2["text"] is None
+    assert_file_contents("f2.dat", b"1     \0\0\0\0\0\0\n")
+    assert_file_contents("f2.text.dat", b"")
+
+
+@use_tables("f2")
+def test_db_insert_empty_nullable_text(db):
+    f2 = db.insert("f2", {"text": ""})
+
+    assert f2["id"] == 1
+    assert f2["text"] == ""
+    assert_file_contents("f2.dat", b"1     0     \n")
+    assert_file_contents("f2.text.dat", b"0     ")
+
+
+@use_tables("f2")
+def test_db_insert_multiple_nullable_texts(db):
+    f1 = db.insert("f2", {"text": "foo"})
+    f2 = db.insert("f2", {"text": None})
+    f3 = db.insert("f2", {"text": "bar"})
+
+    assert f1["id"] == 1
+    assert f1["text"] == "foo"
+    assert f2["id"] == 2
+    assert f2["text"] is None
+    assert f3["id"] == 3
+    assert f3["text"] == "bar"
+    assert_file_contents(
+        "f2.dat",
+        (
+            b"1     0     \n"  # fmt: skip
+            b"2     \0\0\0\0\0\0\n"
+            b"3     9     \n"
+        ),
+    )
+    assert_file_contents(
+        "f2.text.dat",
+        (
+            b"3     foo"  # fmt: skip
+            b"3     bar"
+        ),
+    )
+
+
+@use_tables("f2")
+@p(
+    ["pk", "values", "expected", "expected_table_contents", "expected_text_contents"],
+    [
+        (
+            1,
+            {"text": None},
+            {"id": 1, "text": None},
+            (
+                b"1     \0\0\0\0\0\0\n"  # fmt: skip
+                b"2     \0\0\0\0\0\0\n"
+                b"3     9     \n"
+            ),
+            (
+                b"#########"  # fmt: skip
+                b"3     bar"
+            ),
+        ),
+        (
+            3,
+            {"text": None},
+            {"id": 3, "text": None},
+            (
+                b"1     0     \n"  # fmt: skip
+                b"2     \0\0\0\0\0\0\n"
+                b"3     \0\0\0\0\0\0\n"
+            ),
+            (
+                b"3     foo"  # fmt: skip
+                b"#########"
+                b"#########"
+            ),
+        ),
+        (
+            2,
+            {"text": "baz"},
+            {"id": 2, "text": "baz"},
+            (
+                b"1     0     \n"  # fmt: skip
+                b"2     18    \n"
+                b"3     9     \n"
+            ),
+            (
+                b"3     foo"  # fmt: skip
+                b"3     bar"
+                b"3     baz"
+            ),
+        ),
+    ],
+)
+def test_db_update_nullable_texts_by_id(
+    db, pk, values, expected, expected_table_contents, expected_text_contents
+):
+    db.insert("f2", {"text": "foo"})
+    db.insert("f2", {"text": None})
+    db.insert("f2", {"text": "bar"})
+
+    res = db.update_by_id("f2", pk, values)
+
+    assert res == expected
+    assert_file_contents("f2.dat", expected_table_contents)
+    assert_file_contents("f2.text.dat", expected_text_contents)
+
+
+@use_tables("g")
+def test_db_insert_multiple_text_fields(db):
+    g = db.insert("g", {"text1": "foo", "text2": None, "text3": "bar"})
+
+    assert g == {"id": 1, "text1": "foo", "text2": None, "text3": "bar"}
+    assert_file_contents("g.dat", b"1     0     \0\0\0\0\0\09     \n")
+    assert_file_contents(
+        "g.text.dat",
+        (
+            b"3     foo"  # fmt: skip
+            b"3     bar"
+        ),
+    )

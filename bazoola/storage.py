@@ -244,3 +244,16 @@ class TableStorage:
         truncated_table.rownum_index.f.truncate()
 
         truncated_table.free_rownums.stack.f.truncate()
+
+
+class TextStorage:
+    def __init__(self, base_dir: str, table_name: str) -> None:
+        os.makedirs(base_dir, exist_ok=True)
+        self.f = File.open(base_dir, f"{table_name}.text.dat")
+
+    def close(self) -> None:
+        self.f.close()
+
+    def truncate(self) -> None:
+        self.f.seek(0)
+        self.f.truncate()

@@ -9,6 +9,14 @@ from .fields import FK, Field
 from .row import Row
 from .storage import Array, File, FreeRownums, PersistentInt
 
+# for text_field in tbl.schema.text_fields():
+#     text_ref = values.get(text_field)
+#     if text_ref is None:
+#         continue
+#     text_val = self.text_storage.find_by_ref(text_ref)
+#     if not text_val:
+#         raise ValueError(f"Text ref={text_ref} does not exist in text storage")
+
 
 class Schema:
     def __init__(self, schema: list[Field]):

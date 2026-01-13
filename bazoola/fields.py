@@ -102,6 +102,10 @@ class CHAR(FieldType):
             raise ValidationError("The value is too long")
 
 
+class TEXT(INT):
+    pass
+
+
 class Field(NamedTuple):
     name: str
     type: FieldType

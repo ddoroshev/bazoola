@@ -63,3 +63,35 @@ class TableE(Table):
             Field("text", CHAR(20)),
         ]
     )
+
+
+class TableF(Table):
+    name = "f"
+    schema = Schema(
+        [
+            Field("id", PK()),
+            Field("text", TEXT()),
+        ]
+    )
+
+
+class TableF_NullableText(Table):
+    name = "f2"
+    schema = Schema(
+        [
+            Field("id", PK()),
+            Field("text", TEXT(null=True)),
+        ]
+    )
+
+
+class TableG(Table):
+    name = "g"
+    schema = Schema(
+        [
+            Field("id", PK()),
+            Field("text1", TEXT()),
+            Field("text2", TEXT(null=True)),
+            Field("text3", TEXT()),
+        ]
+    )

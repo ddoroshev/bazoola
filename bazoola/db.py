@@ -13,6 +13,7 @@ class DB:
 
         self.storage = TableStorage(cls_tables, base_dir=base_dir)
         self.tables = self.storage.tables
+        self.text_storage = self.storage.text_storage
 
     def insert(self, table_name: str, values: dict) -> Row:
         assert table_name in self.tables, "No such table"
