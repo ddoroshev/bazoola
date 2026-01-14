@@ -984,14 +984,13 @@ def test_db_delete_texts_by_id(db, pk, expected_table_contents, expected_text_co
             1,
             [{"id": 4, "text": "new_1"}],
             [
-                {"id": 3, "text": "baz"},
                 {"id": 4, "text": "new_1"},
+                {"id": 3, "text": "baz"},
             ],
             (
                 b"************\n"  # fmt: skip
-                b"************\n"
-                b"3     18    \n"
                 b"4     27    \n"
+                b"3     18    \n"
             ),
             (
                 b"#########"  # fmt: skip
@@ -1008,16 +1007,14 @@ def test_db_delete_texts_by_id(db, pk, expected_table_contents, expected_text_co
                 {"id": 5, "text": "new_2"},
             ],
             [
-                {"id": 3, "text": "baz"},
-                {"id": 4, "text": "new_1"},
                 {"id": 5, "text": "new_2"},
+                {"id": 4, "text": "new_1"},
+                {"id": 3, "text": "baz"},
             ],
             (
-                b"************\n"  # fmt: skip
-                b"************\n"
-                b"3     18    \n"
+                b"5     38    \n"  # fmt: skip
                 b"4     27    \n"
-                b"5     38    \n"
+                b"3     18    \n"
             ),
             (
                 b"#########"  # fmt: skip
@@ -1038,7 +1035,6 @@ def test_db_delete_texts_by_id(db, pk, expected_table_contents, expected_text_co
             (
                 b"************\n"  # fmt: skip
                 b"2     9     \n"
-                b"************\n"
                 b"4     27    \n"
             ),
             (
@@ -1096,7 +1092,7 @@ def test_db_insert_single_nullable_text(db):
 
     assert f2["id"] == 1
     assert f2["text"] is None
-    assert_file_contents("f2.dat", b"1     \0\0\0\0\0\0\n")
+    assert_file_contents("f2.dat", b"1     ######\n")
     assert_file_contents("f2.text.dat", b"")
 
 
@@ -1126,7 +1122,7 @@ def test_db_insert_multiple_nullable_texts(db):
         "f2.dat",
         (
             b"1     0     \n"  # fmt: skip
-            b"2     \0\0\0\0\0\0\n"
+            b"2     ######\n"
             b"3     9     \n"
         ),
     )
@@ -1148,8 +1144,8 @@ def test_db_insert_multiple_nullable_texts(db):
             {"text": None},
             {"id": 1, "text": None},
             (
-                b"1     \0\0\0\0\0\0\n"  # fmt: skip
-                b"2     \0\0\0\0\0\0\n"
+                b"1     ######\n"  # fmt: skip
+                b"2     ######\n"
                 b"3     9     \n"
             ),
             (
@@ -1163,12 +1159,11 @@ def test_db_insert_multiple_nullable_texts(db):
             {"id": 3, "text": None},
             (
                 b"1     0     \n"  # fmt: skip
-                b"2     \0\0\0\0\0\0\n"
-                b"3     \0\0\0\0\0\0\n"
+                b"2     ######\n"
+                b"3     ######\n"
             ),
             (
                 b"3     foo"  # fmt: skip
-                b"#########"
                 b"#########"
             ),
         ),
@@ -1208,7 +1203,7 @@ def test_db_insert_multiple_text_fields(db):
     g = db.insert("g", {"text1": "foo", "text2": None, "text3": "bar"})
 
     assert g == {"id": 1, "text1": "foo", "text2": None, "text3": "bar"}
-    assert_file_contents("g.dat", b"1     0     \0\0\0\0\0\09     \n")
+    assert_file_contents("g.dat", b"1     0     ######9     \n")
     assert_file_contents(
         "g.text.dat",
         (

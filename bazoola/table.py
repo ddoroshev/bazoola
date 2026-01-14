@@ -161,9 +161,21 @@ class Table:
 
     def iterate(self) -> Generator[Row]:
         self.f.seek(0)
+        text_fields = self.schema.text_fields()
         while row := self.f.read(self.row_size):
             if parsed := self.schema.parse(row):
-                yield parsed
+                if not parsed:
+                    yield parsed
+                else:
+                    # handle text fields separately
+                    text_values: dict[str, str | None] = {}
+                    if text_fields:
+                        assert self.text_storage
+                        for text_field in text_fields:
+                            text_ref = parsed[text_field]
+                            text = self.text_storage.get(text_ref)
+                            text_values[text_field] = text.decode()
+                    yield Row(parsed | text_values)
 
     def find_all(self) -> list[Row]:
         return list(self.iterate())
@@ -189,8 +201,9 @@ class Table:
             assert self.text_storage
             for text_field in text_fields:
                 text_ref = parsed_row[text_field]
-                text = self.text_storage.get(text_ref)
-                text_values[text_field] = text.decode()
+                if text_ref is not None:
+                    text = self.text_storage.get(text_ref)
+                    text_values[text_field] = text.decode()
         return Row(parsed_row | text_values)
 
     def find_by_cond(self, cond: BaseCond) -> list[Row]:
