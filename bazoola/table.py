@@ -98,7 +98,7 @@ class Table:
                     values[text_field] = None
                     continue
                 if not isinstance(text, (str, bytes)):
-                    raise ValidationError("'text': Type mismatch")
+                    raise ValidationError(f"'{text_field}': Type mismatch")
                 values[text_field] = self.text_storage.add(text)
                 text_values[text_field] = text
 
@@ -164,18 +164,16 @@ class Table:
         text_fields = self.schema.text_fields()
         while row := self.f.read(self.row_size):
             if parsed := self.schema.parse(row):
-                if not parsed:
-                    yield parsed
-                else:
-                    # handle text fields separately
-                    text_values: dict[str, str | None] = {}
-                    if text_fields:
-                        assert self.text_storage
-                        for text_field in text_fields:
-                            text_ref = parsed[text_field]
+                # handle text fields separately
+                text_values: dict[str, str | None] = {}
+                if text_fields:
+                    assert self.text_storage
+                    for text_field in text_fields:
+                        text_ref = parsed[text_field]
+                        if text_ref is not None:
                             text = self.text_storage.get(text_ref)
                             text_values[text_field] = text.decode()
-                    yield Row(parsed | text_values)
+                yield Row(parsed | text_values)
 
     def find_all(self) -> list[Row]:
         return list(self.iterate())
