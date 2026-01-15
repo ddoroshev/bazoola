@@ -4,6 +4,7 @@ import os
 from typing import Generator
 
 from .cond import BaseCond
+from .const import INT_SIZE
 from .errors import NotFoundError, ValidationError
 from .fields import FK, TEXT, Field
 from .row import Row
@@ -60,7 +61,7 @@ class Table:
         self.f_seqnum = PersistentInt(f"{self.name}__seqnum.dat", 0, base_dir=base_dir)
 
         self.free_rownums = FreeRownums(self.name, base_dir=base_dir)
-        self.rownum_index = Array(f"{self.name}__id.idx.dat", 6, base_dir=base_dir)
+        self.rownum_index = Array(f"{self.name}__id.idx.dat", INT_SIZE, base_dir=base_dir)
         self.text_storage = None
         if self.schema.text_fields():
             self.text_storage = TextStorage(self.name, base_dir=base_dir)

@@ -41,7 +41,7 @@ def test_db_insert_assign_id(db, text):
     a = db.insert("a", {"text": text})
 
     assert a["id"] == 1
-    assert_file_contents("a.dat", b"1     foo  \n")
+    assert_file_contents("a.dat", b"1        foo  \n")
 
 
 @use_tables("a")
@@ -49,7 +49,7 @@ def test_db_insert_with_id(db):
     a = db.insert("a", {"id": 10, "text": "a"})
 
     assert a["id"] == 10
-    assert_file_contents("a.dat", b"10    a    \n")
+    assert_file_contents("a.dat", b"10       a    \n")
 
 
 @use_tables("a")
@@ -59,7 +59,7 @@ def test_db_insert_with_id_twice(db):
     with pytest.raises(ValidationError, match="'id': row with id 10 already exists"):
         db.insert("a", {"id": 10, "text": "a"})
 
-    assert_file_contents("a.dat", b"10    a    \n")
+    assert_file_contents("a.dat", b"10       a    \n")
 
 
 @use_tables("a")
@@ -69,7 +69,7 @@ def test_db_insert_with_id_then_without(db):
     res = db.insert("a", {"text": "b"})
 
     assert res["id"] == 1
-    assert_file_contents("a.dat", b"10    a    \n1     b    \n")
+    assert_file_contents("a.dat", b"10       a    \n1        b    \n")
 
 
 @use_tables("c")
@@ -99,7 +99,7 @@ def test_db_insert_varchar_type_error(db):
 @use_tables("c")
 def test_db_insert_int_size_error(db):
     with pytest.raises(ValidationError, match="'int': The value is too big"):
-        db.insert("c", {"varchar": "a", "int": 9999999})
+        db.insert("c", {"varchar": "a", "int": 99999999999})
 
     assert_file_contents("c.dat", b"")
 
@@ -119,27 +119,27 @@ def test_db_insert_int_type_error(db):
         (
             {},
             {"id": 1, "varchar": None, "int": None},
-            b"1     \x00\x00\x00\x00\x00######\n",
+            b"1        \x00\x00\x00\x00\x00#########\n",
         ),
         (
             {"varchar": None},
             {"id": 1, "varchar": None, "int": None},
-            b"1     \x00\x00\x00\x00\x00######\n",
+            b"1        \x00\x00\x00\x00\x00#########\n",
         ),
         (
             {"int": None},
             {"id": 1, "varchar": None, "int": None},
-            b"1     \x00\x00\x00\x00\x00######\n",
+            b"1        \x00\x00\x00\x00\x00#########\n",
         ),
         (
             {"varchar": "ab"},
             {"id": 1, "varchar": "ab", "int": None},
-            b"1     ab   ######\n",
+            b"1        ab   #########\n",
         ),
         (
             {"int": 4567},
             {"id": 1, "varchar": None, "int": 4567},
-            b"1     \x00\x00\x00\x00\x004567  \n",
+            b"1        \x00\x00\x00\x00\x004567     \n",
         ),
     ],
 )
@@ -157,8 +157,8 @@ def test_db_insert_fk(db):
     b = db.insert("b", {"text": "baz", "a_id": a["id"]})
 
     assert b["id"] == 1
-    assert_file_contents("a.dat", b"1     foo  \n")
-    assert_file_contents("b.dat", b"1     baz  1     \n")
+    assert_file_contents("a.dat", b"1        foo  \n")
+    assert_file_contents("b.dat", b"1        baz  1        \n")
 
 
 @use_tables("a", "b")
@@ -168,7 +168,7 @@ def test_db_insert_bad_fk(db):
     with pytest.raises(ValueError):
         db.insert("b", {"text": "baz", "a_id": 2})
 
-    assert_file_contents("a.dat", b"1     foo  \n")
+    assert_file_contents("a.dat", b"1        foo  \n")
     assert_file_contents("b.dat", b"")
 
 
@@ -180,19 +180,19 @@ def test_db_insert_bad_fk(db):
             1,
             {"varchar": "foo_1", "int": 100},
             {"id": 1, "varchar": "foo_1", "int": 100},
-            (b"1     foo_1100   \n2     bar  2     \n3     baz  3     \n"),
+            (b"1        foo_1100      \n2        bar  2        \n3        baz  3        \n"),
         ),
         (
             2,
             {"varchar": "bar_2", "int": 200},
             {"id": 2, "varchar": "bar_2", "int": 200},
-            (b"1     foo  1     \n2     bar_2200   \n3     baz  3     \n"),
+            (b"1        foo  1        \n2        bar_2200      \n3        baz  3        \n"),
         ),
         (
             3,
             {"varchar": "baz_3", "int": 300},
             {"id": 3, "varchar": "baz_3", "int": 300},
-            (b"1     foo  1     \n2     bar  2     \n3     baz_3300   \n"),
+            (b"1        foo  1        \n2        bar  2        \n3        baz_3300      \n"),
         ),
     ],
 )
@@ -214,7 +214,7 @@ def test_db_update_by_id_not_found(db):
     with pytest.raises(NotFoundError):
         db.update_by_id("a", 2, {"text": "bar"})
 
-    assert_file_contents("a.dat", b"1     foo  \n")
+    assert_file_contents("a.dat", b"1        foo  \n")
 
 
 @use_tables("a", "b")
@@ -255,7 +255,7 @@ def test_db_update_by_id_deleted(db):
     with pytest.raises(NotFoundError):
         db.update_by_id("a", 1, {"text": "bar"})
 
-    assert_file_contents("a.dat", b"***********\n")
+    assert_file_contents("a.dat", b"**************\n")
 
 
 @use_tables("a")
@@ -268,7 +268,7 @@ def test_db_update_by_id_deleted(db):
                 {"id": 2, "text": "bar"},
                 {"id": 3, "text": "baz"},
             ],
-            (b"***********\n2     bar  \n3     baz  \n"),
+            (b"**************\n2        bar  \n3        baz  \n"),
         ),
         (
             2,
@@ -276,7 +276,7 @@ def test_db_update_by_id_deleted(db):
                 {"id": 1, "text": "foo"},
                 {"id": 3, "text": "baz"},
             ],
-            (b"1     foo  \n***********\n3     baz  \n"),
+            (b"1        foo  \n**************\n3        baz  \n"),
         ),
         (
             3,
@@ -284,7 +284,7 @@ def test_db_update_by_id_deleted(db):
                 {"id": 1, "text": "foo"},
                 {"id": 2, "text": "bar"},
             ],
-            (b"1     foo  \n2     bar  \n***********\n"),
+            (b"1        foo  \n2        bar  \n**************\n"),
         ),
     ],
 )
@@ -347,7 +347,7 @@ def test_db_delete_by_id_3(db, pk, expected):
                 {"id": 2, "text": "bar"},
                 {"id": 3, "text": "baz"},
             ],
-            (b"4     new  \n2     bar  \n3     baz  \n"),
+            (b"4        new  \n2        bar  \n3        baz  \n"),
         ),
         (
             2,
@@ -356,7 +356,7 @@ def test_db_delete_by_id_3(db, pk, expected):
                 {"id": 4, "text": "new"},
                 {"id": 3, "text": "baz"},
             ],
-            (b"1     foo  \n4     new  \n3     baz  \n"),
+            (b"1        foo  \n4        new  \n3        baz  \n"),
         ),
         (
             3,
@@ -365,7 +365,7 @@ def test_db_delete_by_id_3(db, pk, expected):
                 {"id": 2, "text": "bar"},
                 {"id": 4, "text": "new"},
             ],
-            (b"1     foo  \n2     bar  \n4     new  \n"),
+            (b"1        foo  \n2        bar  \n4        new  \n"),
         ),
     ],
 )
@@ -394,7 +394,7 @@ def test_db_delete_one_then_insert(db, pk, expected_lst, expected_contents):
                 {"id": 4, "text": "new_1"},
                 {"id": 3, "text": "baz"},
             ],
-            (b"***********\n4     new_1\n3     baz  \n"),
+            (b"**************\n4        new_1\n3        baz  \n"),
         ),
         (
             [1, 2],
@@ -405,7 +405,7 @@ def test_db_delete_one_then_insert(db, pk, expected_lst, expected_contents):
                 {"id": 4, "text": "new_1"},
                 {"id": 3, "text": "baz"},
             ],
-            (b"5     new_2\n4     new_1\n3     baz  \n"),
+            (b"5        new_2\n4        new_1\n3        baz  \n"),
         ),
         (
             [1, 2],
@@ -417,7 +417,7 @@ def test_db_delete_one_then_insert(db, pk, expected_lst, expected_contents):
                 {"id": 3, "text": "baz"},
                 {"id": 6, "text": "new_3"},
             ],
-            (b"5     new_2\n4     new_1\n3     baz  \n6     new_3\n"),
+            (b"5        new_2\n4        new_1\n3        baz  \n6        new_3\n"),
         ),
     ],
 )
@@ -452,7 +452,7 @@ def test_db_delete_insert_delete_reopen_insert(db):
 
     assert res["id"] == 3
     assert db2.find_all("a") == [{"id": 3, "text": "new"}]
-    assert_file_contents("a.dat", b"3     new  \n")
+    assert_file_contents("a.dat", b"3        new  \n")
 
 
 @use_tables("a")
@@ -485,7 +485,7 @@ def test_db_find_by_id(db):
 @use_tables("a")
 def test_db_find_by_id_inconsistent_varchar(db):
     db.insert("a", {"text": ""})
-    set_file_contents("a.dat", b"1     \0\0\0\0\0\n")
+    set_file_contents("a.dat", b"1        \0\0\0\0\0\n")
 
     with pytest.raises(ValueError, match="Inconsistent data"):
         db.find_by_id("a", 1)
@@ -494,7 +494,7 @@ def test_db_find_by_id_inconsistent_varchar(db):
 @use_tables("c")
 def test_db_find_by_id_inconsistent_int(db):
     db.insert("c", {"varchar": "abc", "int": 1})
-    set_file_contents("c.dat", b"1     abc  ######\n")
+    set_file_contents("c.dat", b"1        abc  #########\n")
 
     with pytest.raises(ValueError, match="Inconsistent data"):
         db.find_by_id("c", 1)
@@ -787,14 +787,14 @@ def test_db_find_by_cond_eq(db):
 @p(
     ["text", "expected_row", "expected_table_contents", "expected_text_contents"],
     [
-        ("foo", {"id": 1, "text": "foo"}, b"1     0     \n", b"3     foo"),
-        ("", {"id": 1, "text": ""}, b"1     0     \n", b"0     "),
-        ("café", {"id": 1, "text": "café"}, b"1     0     \n", b"5     caf\xc3\xa9"),
+        ("foo", {"id": 1, "text": "foo"}, b"1        0        \n", b"3        foo"),
+        ("", {"id": 1, "text": ""}, b"1        0        \n", b"0        "),
+        ("café", {"id": 1, "text": "café"}, b"1        0        \n", b"5        caf\xc3\xa9"),
         (
             "some\nthing\treally\0weird",
             {"id": 1, "text": "some\nthing\treally\0weird"},
-            b"1     0     \n",
-            b"23    some\nthing\treally\0weird",
+            b"1        0        \n",
+            b"23       some\nthing\treally\0weird",
         ),
     ],
 )
@@ -850,17 +850,17 @@ def test_db_insert_multiple_texts(db):
     assert_file_contents(
         "f.dat",
         (
-            b"1     0     \n"  # fmt: skip
-            b"2     9     \n"
-            b"3     19    \n"
+            b"1        0        \n"  # fmt: skip
+            b"2        12       \n"
+            b"3        25       \n"
         ),
     )
     assert_file_contents(
         "f.text.dat",
         (
-            b"3     foo"  # fmt: skip
-            b"4     eggs"
-            b"8     multiple"
+            b"3        foo"  # fmt: skip
+            b"4        eggs"
+            b"8        multiple"
         ),
     )
 
@@ -874,13 +874,13 @@ def test_db_insert_multiple_texts(db):
             {"text": "foo_1"},
             {"id": 1, "text": "foo_1"},
             (
-                b"1     18    \n"  # fmt: skip
-                b"2     9     \n"
+                b"1        24       \n"  # fmt: skip
+                b"2        12       \n"
             ),
             (
-                b"#########"  # fmt: skip
-                b"3     bar"
-                b"5     foo_1"
+                b"############"  # fmt: skip
+                b"3        bar"
+                b"5        foo_1"
             ),
         ),
         (
@@ -888,13 +888,13 @@ def test_db_insert_multiple_texts(db):
             {"text": "bar_1"},
             {"id": 2, "text": "bar_1"},
             (
-                b"1     0     \n"  # fmt: skip
-                b"2     18    \n"
+                b"1        0        \n"  # fmt: skip
+                b"2        24       \n"
             ),
             (
-                b"3     foo"  # fmt: skip
-                b"#########"
-                b"5     bar_1"
+                b"3        foo"  # fmt: skip
+                b"############"
+                b"5        bar_1"
             ),
         ),
     ],
@@ -919,40 +919,40 @@ def test_db_update_texts_by_id(
         (
             1,
             (
-                b"************\n"  # fmt: skip
-                b"2     9     \n"
-                b"3     18    \n"
+                b"******************\n"  # fmt: skip
+                b"2        12       \n"
+                b"3        24       \n"
             ),
             (
-                b"#########"  # fmt: skip
-                b"3     bar"
-                b"3     baz"
+                b"############"  # fmt: skip
+                b"3        bar"
+                b"3        baz"
             ),
         ),
         (
             2,
             (
-                b"1     0     \n"  # fmt: skip
-                b"************\n"
-                b"3     18    \n"
+                b"1        0        \n"  # fmt: skip
+                b"******************\n"
+                b"3        24       \n"
             ),
             (
-                b"3     foo"  # fmt: skip
-                b"#########"
-                b"3     baz"
+                b"3        foo"  # fmt: skip
+                b"############"
+                b"3        baz"
             ),
         ),
         (
             3,
             (
-                b"1     0     \n"  # fmt: skip
-                b"2     9     \n"
-                b"************\n"
+                b"1        0        \n"  # fmt: skip
+                b"2        12       \n"
+                b"******************\n"
             ),
             (
-                b"3     foo"  # fmt: skip
-                b"3     bar"
-                b"#########"
+                b"3        foo"  # fmt: skip
+                b"3        bar"
+                b"############"
             ),
         ),
     ],
@@ -988,15 +988,15 @@ def test_db_delete_texts_by_id(db, pk, expected_table_contents, expected_text_co
                 {"id": 3, "text": "baz"},
             ],
             (
-                b"************\n"  # fmt: skip
-                b"4     27    \n"
-                b"3     18    \n"
+                b"******************\n"  # fmt: skip
+                b"4        36       \n"
+                b"3        24       \n"
             ),
             (
-                b"#########"  # fmt: skip
-                b"#########"
-                b"3     baz"
-                b"5     new_1"
+                b"############"  # fmt: skip
+                b"############"
+                b"3        baz"
+                b"5        new_1"
             ),
         ),
         (
@@ -1012,16 +1012,16 @@ def test_db_delete_texts_by_id(db, pk, expected_table_contents, expected_text_co
                 {"id": 3, "text": "baz"},
             ],
             (
-                b"5     38    \n"  # fmt: skip
-                b"4     27    \n"
-                b"3     18    \n"
+                b"5        50       \n"  # fmt: skip
+                b"4        36       \n"
+                b"3        24       \n"
             ),
             (
-                b"#########"  # fmt: skip
-                b"#########"
-                b"3     baz"
-                b"5     new_1"
-                b"5     new_2"
+                b"############"  # fmt: skip
+                b"############"
+                b"3        baz"
+                b"5        new_1"
+                b"5        new_2"
             ),
         ),
         (
@@ -1033,15 +1033,15 @@ def test_db_delete_texts_by_id(db, pk, expected_table_contents, expected_text_co
                 {"id": 4, "text": "new_1"},
             ],
             (
-                b"************\n"  # fmt: skip
-                b"2     9     \n"
-                b"4     27    \n"
+                b"******************\n"  # fmt: skip
+                b"2        12       \n"
+                b"4        36       \n"
             ),
             (
-                b"#########"  # fmt: skip
-                b"3     bar"
-                b"#########"
-                b"5     new_1"
+                b"############"  # fmt: skip
+                b"3        bar"
+                b"############"
+                b"5        new_1"
             ),
         ),
     ],
@@ -1092,7 +1092,7 @@ def test_db_insert_single_nullable_text(db):
 
     assert f2["id"] == 1
     assert f2["text"] is None
-    assert_file_contents("f2.dat", b"1     ######\n")
+    assert_file_contents("f2.dat", b"1        #########\n")
     assert_file_contents("f2.text.dat", b"")
 
 
@@ -1102,8 +1102,8 @@ def test_db_insert_empty_nullable_text(db):
 
     assert f2["id"] == 1
     assert f2["text"] == ""
-    assert_file_contents("f2.dat", b"1     0     \n")
-    assert_file_contents("f2.text.dat", b"0     ")
+    assert_file_contents("f2.dat", b"1        0        \n")
+    assert_file_contents("f2.text.dat", b"0        ")
 
 
 @use_tables("f2")
@@ -1121,16 +1121,16 @@ def test_db_insert_multiple_nullable_texts(db):
     assert_file_contents(
         "f2.dat",
         (
-            b"1     0     \n"  # fmt: skip
-            b"2     ######\n"
-            b"3     9     \n"
+            b"1        0        \n"  # fmt: skip
+            b"2        #########\n"
+            b"3        12       \n"
         ),
     )
     assert_file_contents(
         "f2.text.dat",
         (
-            b"3     foo"  # fmt: skip
-            b"3     bar"
+            b"3        foo"  # fmt: skip
+            b"3        bar"
         ),
     )
 
@@ -1144,13 +1144,13 @@ def test_db_insert_multiple_nullable_texts(db):
             {"text": None},
             {"id": 1, "text": None},
             (
-                b"1     ######\n"  # fmt: skip
-                b"2     ######\n"
-                b"3     9     \n"
+                b"1        #########\n"  # fmt: skip
+                b"2        #########\n"
+                b"3        12       \n"
             ),
             (
-                b"#########"  # fmt: skip
-                b"3     bar"
+                b"############"  # fmt: skip
+                b"3        bar"
             ),
         ),
         (
@@ -1158,13 +1158,13 @@ def test_db_insert_multiple_nullable_texts(db):
             {"text": None},
             {"id": 3, "text": None},
             (
-                b"1     0     \n"  # fmt: skip
-                b"2     ######\n"
-                b"3     ######\n"
+                b"1        0        \n"  # fmt: skip
+                b"2        #########\n"
+                b"3        #########\n"
             ),
             (
-                b"3     foo"  # fmt: skip
-                b"#########"
+                b"3        foo"  # fmt: skip
+                b"############"
             ),
         ),
         (
@@ -1172,14 +1172,14 @@ def test_db_insert_multiple_nullable_texts(db):
             {"text": "baz"},
             {"id": 2, "text": "baz"},
             (
-                b"1     0     \n"  # fmt: skip
-                b"2     18    \n"
-                b"3     9     \n"
+                b"1        0        \n"  # fmt: skip
+                b"2        24       \n"
+                b"3        12       \n"
             ),
             (
-                b"3     foo"  # fmt: skip
-                b"3     bar"
-                b"3     baz"
+                b"3        foo"  # fmt: skip
+                b"3        bar"
+                b"3        baz"
             ),
         ),
     ],
@@ -1203,12 +1203,12 @@ def test_db_insert_multiple_text_fields(db):
     g = db.insert("g", {"text1": "foo", "text2": None, "text3": "bar"})
 
     assert g == {"id": 1, "text1": "foo", "text2": None, "text3": "bar"}
-    assert_file_contents("g.dat", b"1     0     ######9     \n")
+    assert_file_contents("g.dat", b"1        0        #########12       \n")
     assert_file_contents(
         "g.text.dat",
         (
-            b"3     foo"  # fmt: skip
-            b"3     bar"
+            b"3        foo"  # fmt: skip
+            b"3        bar"
         ),
     )
 
