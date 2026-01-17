@@ -245,3 +245,163 @@ def test_concurrent_file_corruption_simulation():
 
     finally:
         db.close()
+
+
+@use_tables("f")
+def test_concurrent_text_insert_threads(db):
+    """
+    Test race conditions in TextStorage.add() with multiple threads.
+    """
+    results = []
+    errors = []
+    num_threads = 10
+    inserts_per_thread = 20
+
+    def insert_worker(worker_id):
+        try:
+            for i in range(inserts_per_thread):
+                text = f"worker_{worker_id}_item_{i}_" + "x" * 100
+                result = db.insert("f", {"text": text})
+                results.append((result["id"], text))
+        except Exception as e:
+            errors.append(f"Worker {worker_id}: {e}")
+
+    threads = []
+    for i in range(num_threads):
+        t = threading.Thread(target=insert_worker, args=(i,))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    assert not errors, f"Errors during insert: {errors}"
+
+    for record_id, expected_text in results:
+        actual = db.find_by_id("f", record_id)
+        assert actual is not None, f"Record {record_id} not found"
+        assert actual["text"] == expected_text, (
+            f"Text mismatch for record {record_id}: "
+            f"expected {expected_text[:50]!r}..., got {actual['text'][:50]!r}..."
+        )
+
+
+@use_tables("f")
+def test_concurrent_text_update_threads(db):
+    """
+    Test race conditions when multiple threads update TEXT fields.
+    Updates involve TextStorage.delete() followed by TextStorage.add(),
+    which can race with concurrent operations.
+    """
+    num_records = 20
+    for i in range(num_records):
+        db.insert("f", {"text": f"initial_{i}"})
+
+    errors = []
+    update_log = []
+
+    def update_worker(worker_id):
+        try:
+            for round_num in range(10):
+                for record_id in range(1, num_records + 1):
+                    new_text = f"w{worker_id}_r{round_num}_id{record_id}_" + "z" * 50
+                    try:
+                        db.update_by_id("f", record_id, {"text": new_text})
+                        update_log.append((record_id, new_text))
+                    except Exception as e:
+                        # NotFoundError can happen due to race, but other
+                        # errors are bugs
+                        if "not found" not in str(e).lower():
+                            errors.append(f"Worker {worker_id}: {e}")
+        except Exception as e:
+            errors.append(f"Worker {worker_id} fatal: {e}")
+
+    threads = []
+    for i in range(4):
+        t = threading.Thread(target=update_worker, args=(i,))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    assert not errors, f"Errors during updates: {errors}"
+
+    for record_id in range(1, num_records + 1):
+        record = db.find_by_id("f", record_id)
+        assert record is not None, f"Record {record_id} missing after updates"
+        assert isinstance(record["text"], str), f"Record {record_id} text is not a string"
+        assert record["text"].startswith("w") or record["text"].startswith("initial"), (
+            f"Record {record_id} has unexpected text: {record['text'][:50]!r}"
+        )
+
+
+def text_stress_worker(worker_id) -> list[str] | str:
+    """
+    Stress test worker that performs mixed TEXT operations.
+    """
+    db = DB([TableF], base_dir=TEST_BASE_DIR)
+    operations = []
+    my_ids = []
+
+    try:
+        for i in range(30):
+            op = i % 4
+            if op == 0:
+                # Insert
+                text = f"stress_{worker_id}_{i}_" + "s" * 150
+                result = db.insert("f", {"text": text})
+                my_ids.append(result["id"])
+                operations.append(f"insert:{result['id']}")
+            elif op == 1 and my_ids:
+                # Update
+                target_id = my_ids[-1]
+                new_text = f"updated_{worker_id}_{i}_" + "u" * 150
+                db.update_by_id("f", target_id, {"text": new_text})
+                operations.append(f"update:{target_id}")
+            elif op == 2 and my_ids:
+                # Read and verify
+                target_id = my_ids[-1]
+                record = db.find_by_id("f", target_id)
+                if record and not isinstance(record["text"], str):
+                    return f"ERROR: Corrupted text type for {target_id}"
+                operations.append(f"read:{target_id}")
+            elif op == 3 and len(my_ids) > 1:
+                # Delete (keep at least one)
+                target_id = my_ids.pop(0)
+                try:
+                    db.delete_by_id("f", target_id)
+                    operations.append(f"delete:{target_id}")
+                except Exception:
+                    pass
+
+        return operations
+    except Exception as e:
+        return f"ERROR: {e}"
+    finally:
+        db.close()
+
+
+def test_concurrent_text_stress():
+    """
+    Stress test with mixed TEXT operations from multiple processes.
+    This maximizes the chance of catching race conditions in TextStorage.
+    """
+    results = []
+    with ProcessPoolExecutor(max_workers=6) as executor:
+        for result in executor.map(text_stress_worker, range(6)):
+            results.append(result)
+
+    errors = [r for r in results if isinstance(r, str) and r.startswith("ERROR")]
+    assert not errors, f"Stress test errors: {errors}"
+
+    db = DB([TableF], base_dir=TEST_BASE_DIR)
+    try:
+        all_records = db.find_all("f")
+        for record in all_records:
+            assert record["id"] is not None
+            assert isinstance(record["text"], str), (
+                f"Record {record['id']} has corrupted text: {type(record['text'])}"
+            )
+    finally:
+        db.close()

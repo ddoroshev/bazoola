@@ -16,6 +16,9 @@ all_tables = {
     "c": TableC,
     "d": TableD,
     "e": TableE,
+    "f": TableF,
+    "f2": TableF_NullableText,
+    "g": TableG,
 }
 
 

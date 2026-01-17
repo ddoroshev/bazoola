@@ -11,7 +11,8 @@ def use_tables(*tables):
 
 def assert_file_contents(fname, expected):
     with open(f"{TEST_BASE_DIR}/{fname}", "rb") as f:
-        assert f.read() == expected
+        actual = f.read()
+        assert actual == expected, f"{actual=}, {expected=}"
 
 
 def set_file_contents(fname, contents):

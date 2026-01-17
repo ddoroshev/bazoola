@@ -45,7 +45,7 @@ poetry install
 ## Quick Start
 
 ```python
-from bazoola import DB, Table, Schema, Field, PK, FK, CHAR, INT, Join
+from bazoola import DB, Table, Schema, Field, PK, FK, CHAR, INT, TEXT, Join
 
 # Define table schemas
 class TableAuthors(Table):
@@ -93,6 +93,7 @@ db.close()
 - **PK()**: Primary key field (auto-incrementing integer)
 - **INT(null=False)**: Integer field
 - **CHAR(size, null=False)**: Fixed-size character field
+- **TEXT(null=False)**: Variable-length text field
 - **FK(table_name, null=False)**: Foreign key field
 
 ## Demo Application
@@ -169,6 +170,7 @@ Bazoola creates the following files for each table:
 - `{table_name}__seqnum.dat` - Sequence number for auto-increment
 - `{table_name}__id.idx.dat` - Primary key index
 - `{table_name}__free.dat` - Free rownum stack for space reuse
+- `{table_name}.text.dat` - Text field storage (only for tables with TEXT fields)
 
 ## Configuration
 

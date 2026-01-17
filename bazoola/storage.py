@@ -6,6 +6,7 @@ import threading
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, BinaryIO, Generator
 
+from .const import INT_SIZE
 from .errors import DBError
 
 if TYPE_CHECKING:
@@ -118,7 +119,7 @@ class Array:
     def get(self, index: int) -> int | None:
         self.f.seek(index * self.item_size)
         rownum = self.f.read(self.item_size)
-        if not rownum or rownum == b"######":
+        if not rownum or rownum == b"#" * INT_SIZE:
             return None
         return int(rownum)
 
@@ -172,7 +173,7 @@ class Stack:
 
 class FreeRownums:
     def __init__(self, table_name: str, base_dir: str) -> None:
-        self.stack = Stack.from_file_path(f"{table_name}__free.dat", 6, base_dir=base_dir)
+        self.stack = Stack.from_file_path(f"{table_name}__free.dat", INT_SIZE, base_dir=base_dir)
 
     def close(self) -> None:
         self.stack.close()
@@ -244,3 +245,43 @@ class TableStorage:
         truncated_table.rownum_index.f.truncate()
 
         truncated_table.free_rownums.stack.f.truncate()
+
+        if truncated_table.text_storage:
+            truncated_table.text_storage.truncate()
+
+
+class TextStorage:
+    def __init__(self, table_name: str, base_dir: str) -> None:
+        os.makedirs(base_dir, exist_ok=True)
+        self.f = File.open(f"{table_name}.text.dat", base_dir=base_dir)
+
+    def close(self) -> None:
+        self.f.close()
+
+    def truncate(self) -> None:
+        self.f.seek(0)
+        self.f.truncate()
+
+    def add(self, text: str | bytes) -> int:
+        if isinstance(text, str):
+            text = text.encode()
+
+        self.f.seek(0, os.SEEK_END)
+        pos = self.f.tell()
+        length = f"%-{INT_SIZE}s" % len(text)
+        self.f.write(length.encode() + text)
+        return pos
+
+    def get(self, ref: int) -> bytes:
+        self.f.seek(ref)
+        s_length = self.f.read(INT_SIZE)
+        i_length = int(s_length)
+        text = self.f.read(i_length)
+        return text
+
+    def delete(self, ref: int) -> None:
+        self.f.seek(ref)
+        s_length = self.f.read(INT_SIZE)
+        i_length = int(s_length)
+        self.f.seek(ref)
+        self.f.write(b"#" * (INT_SIZE + i_length))

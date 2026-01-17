@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, NamedTuple
 
+from .const import INT_SIZE
 from .errors import ValidationError
 
 
@@ -28,8 +29,8 @@ class FieldType(ABC):
 
 
 class INT(FieldType):
-    def __init__(self, null: bool = False) -> None:
-        super().__init__(6, null)
+    def __init__(self, size: int = INT_SIZE, null: bool = False) -> None:
+        super().__init__(size, null)
 
     def serialize(self, val: int | None) -> bytes:
         if val is None:
@@ -60,7 +61,7 @@ class INT(FieldType):
 
 class PK(INT):
     def __init__(self) -> None:
-        super().__init__(False)
+        super().__init__(null=False)
 
 
 class FK(INT):
@@ -100,6 +101,10 @@ class CHAR(FieldType):
             val = val.encode()
         if len(val) > self.size:
             raise ValidationError("The value is too long")
+
+
+class TEXT(INT):
+    pass
 
 
 class Field(NamedTuple):

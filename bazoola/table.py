@@ -4,10 +4,11 @@ import os
 from typing import Generator
 
 from .cond import BaseCond
+from .const import INT_SIZE
 from .errors import NotFoundError, ValidationError
-from .fields import FK, Field
+from .fields import FK, TEXT, Field
 from .row import Row
-from .storage import Array, File, FreeRownums, PersistentInt
+from .storage import Array, File, FreeRownums, PersistentInt, TextStorage
 
 
 class Schema:
@@ -44,6 +45,9 @@ class Schema:
     def relations(self) -> list[tuple[str, str]]:
         return [(x.name, x.type.params["rel_name"]) for x in self.schema if isinstance(x.type, FK)]
 
+    def text_fields(self) -> list[str]:
+        return [x.name for x in self.schema if isinstance(x.type, TEXT)]
+
 
 class Table:
     name: str
@@ -57,9 +61,14 @@ class Table:
         self.f_seqnum = PersistentInt(f"{self.name}__seqnum.dat", 0, base_dir=base_dir)
 
         self.free_rownums = FreeRownums(self.name, base_dir=base_dir)
-        self.rownum_index = Array(f"{self.name}__id.idx.dat", 6, base_dir=base_dir)
+        self.rownum_index = Array(f"{self.name}__id.idx.dat", INT_SIZE, base_dir=base_dir)
+        self.text_storage = None
+        if self.schema.text_fields():
+            self.text_storage = TextStorage(self.name, base_dir=base_dir)
 
     def close(self) -> None:
+        if self.text_storage:
+            self.text_storage.close()
         self.rownum_index.close()
         self.f_seqnum.close()
         self.free_rownums.close()
@@ -79,6 +88,21 @@ class Table:
             new_id = self.next_seqnum()
             values = values | {"id": new_id}
 
+        # handle text fields separately
+        text_values: dict[str, str | bytes] = {}
+        text_fields = self.schema.text_fields()
+        if text_fields:
+            assert self.text_storage
+            for text_field in text_fields:
+                text = values.get(text_field)
+                if text is None:
+                    values[text_field] = None
+                    continue
+                if not isinstance(text, (str, bytes)):
+                    raise ValidationError(f"'{text_field}': Type mismatch")
+                values[text_field] = self.text_storage.add(text)
+                text_values[text_field] = text
+
         existing_rownum = self.rownum_index.get(new_id - 1)
         if existing_rownum is not None:
             raise ValidationError(f"'id': row with id {new_id} already exists")
@@ -90,7 +114,7 @@ class Table:
         self.rownum_index.set(new_id - 1, chosen_rownum)
         parsed = self.schema.parse(row)
         assert parsed is not None, "The inserted row doesn't match its parsed representation"
-        return Row(parsed)
+        return Row(parsed | text_values)
 
     def seek_insert(self) -> None:
         rownum = self.free_rownums.pop()
@@ -121,6 +145,16 @@ class Table:
             # already deleted
             raise NotFoundError(f"Row with ID={pk} does not exist")
 
+        # handle text fields separately
+        text_fields = self.schema.text_fields()
+        if text_fields:
+            assert self.text_storage
+            for text_field in text_fields:
+                ref = values.get(text_field)
+                if ref is None:
+                    continue
+                self.text_storage.delete(ref)
+
         self.f.seek(rownum * self.row_size)
         self.rownum_index.set(pk - 1, None)
         self.f.write(b"*" * (self.row_size - 1) + b"\n")
@@ -128,9 +162,19 @@ class Table:
 
     def iterate(self) -> Generator[Row]:
         self.f.seek(0)
+        text_fields = self.schema.text_fields()
         while row := self.f.read(self.row_size):
             if parsed := self.schema.parse(row):
-                yield parsed
+                # handle text fields separately
+                text_values: dict[str, str | None] = {}
+                if text_fields:
+                    assert self.text_storage
+                    for text_field in text_fields:
+                        text_ref = parsed[text_field]
+                        if text_ref is not None:
+                            text = self.text_storage.get(text_ref)
+                            text_values[text_field] = text.decode()
+                yield Row(parsed | text_values)
 
     def find_all(self) -> list[Row]:
         return list(self.iterate())
@@ -145,7 +189,21 @@ class Table:
         row = self.f.read(self.row_size)
         if not row:
             return None
-        return self.schema.parse(row)
+        parsed_row = self.schema.parse(row)
+        if not parsed_row:
+            return parsed_row
+
+        # handle text fields separately
+        text_values: dict[str, str | None] = {}
+        text_fields = self.schema.text_fields()
+        if text_fields:
+            assert self.text_storage
+            for text_field in text_fields:
+                text_ref = parsed_row[text_field]
+                if text_ref is not None:
+                    text = self.text_storage.get(text_ref)
+                    text_values[text_field] = text.decode()
+        return Row(parsed_row | text_values)
 
     def find_by_cond(self, cond: BaseCond) -> list[Row]:
         res = []
