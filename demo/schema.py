@@ -2,7 +2,7 @@
 Database schema definitions for the Task Manager demo
 """
 
-from bazoola import CHAR, FK, INT, PK, Field, Schema, Table
+from bazoola import CHAR, FK, INT, PK, TEXT, Field, Schema, Table
 
 
 class TableUsers(Table):
@@ -23,7 +23,7 @@ class TableProjects(Table):
         [
             Field("id", PK()),
             Field("name", CHAR(30)),
-            Field("description", CHAR(100)),
+            Field("description", TEXT()),
             Field("owner_id", FK("users")),
             Field("status", CHAR(10)),  # "active", "completed", "paused"
             Field("created_date", CHAR(10)),  # "2024-12-23"
@@ -38,7 +38,7 @@ class TableTasks(Table):
         [
             Field("id", PK()),
             Field("title", CHAR(50)),
-            Field("description", CHAR(150)),
+            Field("description", TEXT()),
             Field("project_id", FK("projects")),
             Field("assignee_id", FK("users", null=True)),
             Field("status", CHAR(15)),  # "todo", "in_progress", "done", "blocked"
@@ -57,7 +57,7 @@ class TableComments(Table):
             Field("id", PK()),
             Field("task_id", FK("tasks")),
             Field("user_id", FK("users")),
-            Field("content", CHAR(200)),
+            Field("content", TEXT()),
             Field("created_date", CHAR(10)),  # "2024-12-23"
         ]
     )

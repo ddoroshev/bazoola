@@ -16,8 +16,8 @@
 
         <div class="form-group">
             <label for="description">Description *</label>
-            <textarea id="description" name="description" required maxlength="100"
-                      placeholder="Max 100 characters">{{ project.description if project else '' }}</textarea>
+            <textarea id="description" name="description" required
+                      placeholder="Variable-length text field">{{ project.description if project else '' }}</textarea>
         </div>
 
         <div class="form-group">
@@ -77,9 +77,9 @@
             </tr>
             <tr>
                 <td>description</td>
-                <td>CHAR(100)</td>
-                <td>Max 100 characters</td>
-                <td>Textarea with character limit</td>
+                <td>TEXT()</td>
+                <td>Required, variable-length</td>
+                <td>Variable-length text storage</td>
             </tr>
             <tr>
                 <td>owner_id</td>
